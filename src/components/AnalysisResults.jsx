@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertTriangle, AlertCircle, Info, Settings2, RotateCcw } from "lucide-react";
+import { CheckCircle2, AlertTriangle, AlertCircle, Info, Settings2, RotateCcw, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DefectCard from "./DefectCard";
+import ShareDialog from "./community/ShareDialog";
 import { cn } from "@/lib/utils";
 
 const qualityConfig = {
@@ -37,6 +38,7 @@ const qualityConfig = {
 };
 
 export default function AnalysisResults({ analysis, onNewAnalysis }) {
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const quality = qualityConfig[analysis.overall_quality] || qualityConfig.fair;
   const QualityIcon = quality.icon;
   const defectCount = analysis.defects?.length || 0;
@@ -130,14 +132,29 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
         </motion.div>
       )}
 
-      {/* New Analysis Button */}
-      <Button
-        onClick={onNewAnalysis}
-        className="w-full h-14 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl border border-slate-700 transition-all duration-300"
-      >
-        <RotateCcw className="w-5 h-5 mr-2" />
-        Analyze Another Print
-      </Button>
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        <Button
+          onClick={() => setShareDialogOpen(true)}
+          className="flex-1 h-14 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-medium rounded-xl transition-all duration-300"
+        >
+          <Share2 className="w-5 h-5 mr-2" />
+          Share with Community
+        </Button>
+        <Button
+          onClick={onNewAnalysis}
+          className="h-14 px-6 bg-slate-800 hover:bg-slate-700 text-white font-medium rounded-xl border border-slate-700 transition-all duration-300"
+        >
+          <RotateCcw className="w-5 h-5" />
+        </Button>
+      </div>
+
+      {/* Share Dialog */}
+      <ShareDialog
+        analysis={analysis}
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+      />
     </motion.div>
   );
 }
