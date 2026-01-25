@@ -108,6 +108,35 @@ export default function DefectCard({ defect, index }) {
                   </ol>
                 </div>
               )}
+
+              {defect.settings_impact && defect.settings_impact.length > 0 && (
+                <div className="bg-slate-900/50 rounded-lg p-3">
+                  <p className="text-xs font-medium text-slate-400 uppercase mb-2">Settings Impact</p>
+                  <ul className="space-y-1">
+                    {defect.settings_impact.map((impact, i) => (
+                      <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
+                        <span className="text-cyan-400 mt-0.5">→</span>
+                        {impact}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {defect.visible_angles && defect.visible_angles.length > 0 && (
+                <div className="bg-cyan-500/5 rounded-lg p-3 border border-cyan-500/20">
+                  <p className="text-xs font-medium text-cyan-400 uppercase mb-1">
+                    Visible from {defect.visible_angles.length === 1 ? 'Angle' : 'Angles'}
+                  </p>
+                  <div className="flex gap-2">
+                    {defect.visible_angles.map((angle, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded text-xs">
+                        #{angle}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

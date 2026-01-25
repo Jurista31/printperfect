@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertTriangle, AlertCircle, Info, Settings2, RotateCcw, Share2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import DefectCard from "./DefectCard";
 import ShareDialog from "./community/ShareDialog";
+import EnhancedPrinterSettings from "./EnhancedPrinterSettings";
 import { cn } from "@/lib/utils";
 
 const qualityConfig = {
@@ -49,24 +51,80 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      {/* Header with Image */}
-      <div className="relative rounded-2xl overflow-hidden">
-        <img
-          src={analysis.image_url}
-          alt="Analyzed print"
-          className="w-full aspect-video object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-6">
-          <div className={cn(
-            "inline-flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm",
-            quality.bg,
-            quality.border
-          )}>
-            <QualityIcon className={cn("w-5 h-5", quality.color)} />
-            <span className={cn("font-semibold", quality.color)}>{quality.label}</span>
+      {/* Header with Image(s) */}
+      <div className="space-y-3">
+        {analysis.all_image_urls && analysis.all_image_urls.length > 1 ? (
+          <>
+            <div className="relative rounded-2xl overflow-hidden">
+              <img
+                src={analysis.all_image_urls[0]}
+                alt="Analyzed print - primary angle"
+                className="w-full aspect-video object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 flex items-end justify-between">
+                <div className={cn(
+                  "inline-flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm",
+                  quality.bg,
+                  quality.border
+                )}>
+                  <QualityIcon className={cn("w-5 h-5", quality.color)} />
+                  <span className={cn("font-semibold", quality.color)}>{quality.label}</span>
+                </div>
+                <Badge className="bg-cyan-500/90 text-white border-0 flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5" />
+                  {analysis.all_image_urls.length} Angles
+                </Badge>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {analysis.all_image_urls.slice(1).map((url, i) => (
+                <div key={i} className="relative rounded-lg overflow-hidden aspect-square">
+                  <img src={url} alt={`Angle ${i + 2}`} className="w-full h-full object-cover" />
+                  <div className="absolute bottom-1 right-1 bg-slate-900/80 text-white px-2 py-0.5 rounded text-xs">
+                    #{i + 2}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="relative rounded-2xl overflow-hidden">
+            <img
+              src={analysis.image_url}
+              alt="Analyzed print"
+              className="w-full aspect-video object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-6">
+              <div className={cn(
+                "inline-flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm",
+                quality.bg,
+                quality.border
+              )}>
+                <QualityIcon className={cn("w-5 h-5", quality.color)} />
+                <span className={cn("font-semibold", quality.color)}>{quality.label}</span>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Confidence Badge */}
+        {analysis.confidence_level && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={cn(
+              "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium",
+              analysis.confidence_level === 'high' && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30",
+              analysis.confidence_level === 'medium' && "bg-amber-500/10 text-amber-400 border border-amber-500/30",
+              analysis.confidence_level === 'low' && "bg-slate-700/50 text-slate-400 border border-slate-600"
+            )}
+          >
+            <Award className="w-4 h-4" />
+            {analysis.confidence_level.charAt(0).toUpperCase() + analysis.confidence_level.slice(1)} Confidence
+          </motion.div>
+        )}
       </div>
 
       {/* Summary */}
@@ -109,27 +167,7 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
 
       {/* Printer Settings Suggestions */}
       {analysis.printer_settings_suggestions && analysis.printer_settings_suggestions.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-slate-800/80 to-slate-800/40 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-cyan-500/10">
-              <Settings2 className="w-5 h-5 text-cyan-400" />
-            </div>
-            <h3 className="text-white font-semibold">Recommended Settings</h3>
-          </div>
-          <ul className="space-y-3">
-            {analysis.printer_settings_suggestions.map((suggestion, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm text-slate-300">
-                <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-cyan-400 mt-2" />
-                {suggestion}
-              </li>
-            ))}
-          </ul>
-        </motion.div>
+        <EnhancedPrinterSettings suggestions={analysis.printer_settings_suggestions} />
       )}
 
       {/* Action Buttons */}
