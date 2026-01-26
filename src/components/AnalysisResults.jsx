@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award } from "lucide-react";
+import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import DefectCard from "./DefectCard";
 import ShareDialog from "./community/ShareDialog";
 import EnhancedPrinterSettings from "./EnhancedPrinterSettings";
+import ImageWithDefectOverlay from "./ImageWithDefectOverlay";
+import DefectLegend from "./DefectLegend";
 import { cn } from "@/lib/utils";
 
 const qualityConfig = {
@@ -41,6 +43,7 @@ const qualityConfig = {
 
 export default function AnalysisResults({ analysis, onNewAnalysis }) {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [showOverlays, setShowOverlays] = useState(true);
   const quality = qualityConfig[analysis.overall_quality] || qualityConfig.fair;
   const QualityIcon = quality.icon;
   const defectCount = analysis.defects?.length || 0;
@@ -51,18 +54,18 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
-      {/* Header with Image(s) */}
+      {/* Header with Image(s) and Defect Overlays */}
       <div className="space-y-3">
-        {analysis.all_image_urls && analysis.all_image_urls.length > 1 ? (
-          <>
-            <div className="relative rounded-2xl overflow-hidden">
-              <img
-                src={analysis.all_image_urls[0]}
-                alt="Analyzed print - primary angle"
-                className="w-full aspect-video object-cover"
+        <div className="relative">
+          {analysis.all_image_urls && analysis.all_image_urls.length > 1 ? (
+            <>
+              <ImageWithDefectOverlay
+                imageUrl={analysis.all_image_urls[0]}
+                defects={analysis.defects}
+                showOverlays={showOverlays}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-6 flex items-end justify-between">
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent pointer-events-none rounded-2xl" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 flex items-end justify-between pointer-events-none">
                 <div className={cn(
                   "inline-flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm",
                   quality.bg,
@@ -76,36 +79,82 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
                   {analysis.all_image_urls.length} Angles
                 </Badge>
               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {analysis.all_image_urls.slice(1).map((url, i) => (
-                <div key={i} className="relative rounded-lg overflow-hidden aspect-square">
-                  <img src={url} alt={`Angle ${i + 2}`} className="w-full h-full object-cover" />
-                  <div className="absolute bottom-1 right-1 bg-slate-900/80 text-white px-2 py-0.5 rounded text-xs">
-                    #{i + 2}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="relative rounded-2xl overflow-hidden">
-            <img
-              src={analysis.image_url}
-              alt="Analyzed print"
-              className="w-full aspect-video object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/50 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-6">
-              <div className={cn(
-                "inline-flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm",
-                quality.bg,
-                quality.border
-              )}>
-                <QualityIcon className={cn("w-5 h-5", quality.color)} />
-                <span className={cn("font-semibold", quality.color)}>{quality.label}</span>
+              {/* Overlay toggle button */}
+              <div className="absolute top-4 left-4 pointer-events-auto">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowOverlays(!showOverlays)}
+                  className="bg-slate-900/80 backdrop-blur-sm hover:bg-slate-800 text-white border border-slate-700"
+                >
+                  {showOverlays ? (
+                    <>
+                      <EyeOff className="w-4 h-4 mr-2" />
+                      Hide Overlays
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-4 h-4 mr-2" />
+                      Show Overlays
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
+            </>
+          ) : (
+            <>
+              <ImageWithDefectOverlay
+                imageUrl={analysis.image_url}
+                defects={analysis.defects}
+                showOverlays={showOverlays}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent pointer-events-none rounded-2xl" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 pointer-events-none">
+                <div className={cn(
+                  "inline-flex items-center gap-2 px-4 py-2 rounded-full border backdrop-blur-sm",
+                  quality.bg,
+                  quality.border
+                )}>
+                  <QualityIcon className={cn("w-5 h-5", quality.color)} />
+                  <span className={cn("font-semibold", quality.color)}>{quality.label}</span>
+                </div>
+              </div>
+              {/* Overlay toggle button */}
+              <div className="absolute top-4 left-4 pointer-events-auto">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowOverlays(!showOverlays)}
+                  className="bg-slate-900/80 backdrop-blur-sm hover:bg-slate-800 text-white border border-slate-700"
+                >
+                  {showOverlays ? (
+                    <>
+                      <EyeOff className="w-4 h-4 mr-2" />
+                      Hide Overlays
+                    </>
+                  ) : (
+                    <>
+                      <Eye className="w-4 h-4 mr-2" />
+                      Show Overlays
+                    </>
+                  )}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Additional angle thumbnails for multi-angle */}
+        {analysis.all_image_urls && analysis.all_image_urls.length > 1 && (
+          <div className="grid grid-cols-3 gap-2">
+            {analysis.all_image_urls.slice(1).map((url, i) => (
+              <div key={i} className="relative rounded-lg overflow-hidden aspect-square">
+                <img src={url} alt={`Angle ${i + 2}`} className="w-full h-full object-cover" />
+                <div className="absolute bottom-1 right-1 bg-slate-900/80 text-white px-2 py-0.5 rounded text-xs">
+                  #{i + 2}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -138,6 +187,9 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
           <p className="text-slate-300 leading-relaxed">{analysis.summary}</p>
         </motion.div>
       )}
+
+      {/* Defect Overview Legend */}
+      {defectCount > 0 && <DefectLegend defects={analysis.defects} />}
 
       {/* Defects Section */}
       {defectCount > 0 ? (

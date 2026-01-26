@@ -6,6 +6,7 @@ export default function LoadingAnalysis() {
   const steps = [
     { icon: Scan, label: "Scanning image..." },
     { icon: Cpu, label: "AI analyzing defects..." },
+    { icon: Zap, label: "Mapping defect locations..." },
     { icon: Zap, label: "Generating solutions..." }
   ];
 

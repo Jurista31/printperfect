@@ -59,9 +59,10 @@ For EACH defect found, provide:
 1. **Name**: Precise defect name
 2. **Severity**: low/medium/high (be realistic - not everything is high)
 3. **Description**: What you observe in detail (location, extent, pattern)
-4. **Causes**: 3-5 specific root causes ranked by likelihood
-5. **Solutions**: 4-7 step-by-step fixes, ordered by ease of implementation
-6. **Settings Impact**: Which specific printer settings to adjust
+4. **Location**: Bounding box coordinates {x, y, width, height} as percentages (REQUIRED)
+5. **Causes**: 3-5 specific root causes ranked by likelihood
+6. **Solutions**: 4-7 step-by-step fixes, ordered by ease of implementation
+7. **Settings Impact**: Which specific printer settings to adjust
 
 PRINTER SETTINGS - For each suggestion, specify:
 - Which setting to change
@@ -78,10 +79,11 @@ ANALYSIS OUTPUT:
 
 If MULTIPLE IMAGES provided from different angles:
 - Cross-reference findings across all angles
-- Note which defects are visible from which angles
+- Note which defects are visible from which image number (1-N) in the visible_angles array
 - Increase confidence when same defect visible from multiple angles
 - Flag any contradictions between angles
 - Provide a consolidated analysis
+- For location bounding boxes, use the coordinates from the PRIMARY image (first image) where the defect is most clearly visible
 
 Be CRITICAL but HELPFUL. Don't just say "looks good" - find the subtle issues that could be improved.`;
 
@@ -96,12 +98,22 @@ const ANALYSIS_SCHEMA = {
           name: { type: "string" },
           severity: { type: "string", enum: ["low", "medium", "high"] },
           description: { type: "string" },
+          location: {
+            type: "object",
+            properties: {
+              x: { type: "number" },
+              y: { type: "number" },
+              width: { type: "number" },
+              height: { type: "number" }
+            },
+            required: ["x", "y", "width", "height"]
+          },
           causes: { type: "array", items: { type: "string" } },
           solutions: { type: "array", items: { type: "string" } },
           settings_impact: { type: "array", items: { type: "string" } },
           visible_angles: { type: "array", items: { type: "number" } }
         },
-        required: ["name", "severity", "description", "causes", "solutions"]
+        required: ["name", "severity", "description", "location", "causes", "solutions"]
       }
     },
     overall_quality: { type: "string", enum: ["poor", "fair", "good", "excellent"] },
