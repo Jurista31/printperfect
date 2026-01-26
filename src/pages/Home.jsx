@@ -12,6 +12,18 @@ import LoadingAnalysis from '@/components/LoadingAnalysis';
 
 const ANALYSIS_PROMPT = `You are a master 3D printing engineer with 15+ years of experience troubleshooting FDM/FFF prints. Analyze this image(s) with extreme precision.
 
+**CRITICAL: For EACH defect found, you MUST provide the bounding box coordinates showing WHERE on the image the defect is located.**
+
+Bounding box format: Provide x, y, width, height as percentages (0-100) of the image dimensions.
+- x: left edge position (0 = left side, 100 = right side)
+- y: top edge position (0 = top, 100 = bottom)  
+- width: box width as percentage of image width
+- height: box height as percentage of image height
+
+Example: A defect in the center covering 20% area would be: {x: 40, y: 40, width: 20, height: 20}
+
+If a defect spans the entire print or is global (like overall quality), use the full image: {x: 0, y: 0, width: 100, height: 100}
+
 DEFECT DETECTION - Look for ALL of these issues:
 
 **Layer Issues:**
