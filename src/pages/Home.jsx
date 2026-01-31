@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Printer, History, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 import CameraCapture from '@/components/CameraCapture';
 import AnalysisResults from '@/components/AnalysisResults';
 import AnalysisHistory from '@/components/AnalysisHistory';
