@@ -13,6 +13,21 @@ import LoadingAnalysis from '@/components/LoadingAnalysis';
 
 const ANALYSIS_PROMPT = `You are a master 3D printing engineer with 15+ years of experience troubleshooting FDM/FFF prints. Analyze this image(s) with extreme precision.
 
+**IMAGE QUALITY & LIGHTING HANDLING:**
+Before analyzing defects, mentally normalize for image conditions:
+- Compensate for poor/bright lighting, shadows, or reflections
+- Account for image blur, low resolution, or compression artifacts  
+- Consider camera angle distortions and perspective
+- If lighting makes analysis difficult, note lower confidence for affected areas
+- Don't confuse lighting shadows with actual print defects
+
+**ACCURACY & FALSE POSITIVE PREVENTION:**
+- Only report defects you are CONFIDENT about (70%+ certainty)
+- If unsure, lower the severity or skip it rather than create false alarms
+- Cross-check: Does this defect make physical sense for FDM printing?
+- Distinguish between actual defects vs. normal print characteristics (e.g., slight layer lines are normal at 0.2mm)
+- When in doubt, mention in summary but don't add as a formal defect
+
 **CRITICAL: For EACH defect found, you MUST provide the bounding box coordinates showing WHERE on the image the defect is located.**
 
 Bounding box format: Provide x, y, width, height as percentages (0-100) of the image dimensions.
