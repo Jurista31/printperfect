@@ -1,13 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, Users } from 'lucide-react';
+import { Home, Users, MessageSquare } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: 'Home', icon: Home, page: 'Home' },
-    { name: 'Community', icon: Users, page: 'Community' }
+    { name: 'Community', icon: Users, page: 'Community' },
+    { name: 'Chat', icon: MessageSquare, page: 'Chat' }
   ];
 
   return (
