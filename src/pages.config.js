@@ -51,6 +51,7 @@ import Community from './pages/Community';
 import Home from './pages/Home';
 import Landing from './pages/Landing';
 import Chat from './pages/Chat';
+import Tips from './pages/Tips';
 import __Layout from './Layout.jsx';
 
 
@@ -59,6 +60,7 @@ export const PAGES = {
     "Home": Home,
     "Landing": Landing,
     "Chat": Chat,
+    "Tips": Tips,
 }
 
 export const pagesConfig = {
