@@ -52,6 +52,7 @@ import Home from './pages/Home';
 import Landing from './pages/Landing';
 import Chat from './pages/Chat';
 import Tips from './pages/Tips';
+import Wizard from './pages/Wizard';
 import __Layout from './Layout.jsx';
 
 
@@ -61,6 +62,7 @@ export const PAGES = {
     "Landing": Landing,
     "Chat": Chat,
     "Tips": Tips,
+    "Wizard": Wizard,
 }
 
 export const pagesConfig = {
