@@ -2,19 +2,52 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Users, Filter, TrendingUp, Clock, Flame } from 'lucide-react';
+import { Users, Filter, TrendingUp, Clock, Flame, RefreshCw } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import CommunityCard from '@/components/community/CommunityCard';
+import { cn } from "@/lib/utils";
 
 export default function Community() {
   const [sortBy, setSortBy] = useState('recent');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
 
-  const { data: sharedAnalyses = [], isLoading } = useQuery({
+  const { data: sharedAnalyses = [], isLoading, refetch } = useQuery({
     queryKey: ['shared-analyses'],
     queryFn: () => base44.entities.SharedAnalysis.list('-created_date', 100),
   });
+
+  // Pull-to-refresh handlers
+  const [touchStart, setTouchStart] = useState(0);
+  
+  const handleTouchStart = (e) => {
+    if (window.scrollY === 0) {
+      setTouchStart(e.touches[0].clientY);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (window.scrollY === 0 && touchStart > 0) {
+      const distance = e.touches[0].clientY - touchStart;
+      if (distance > 0) {
+        setPullDistance(Math.min(distance, 120));
+      }
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (pullDistance > 80) {
+      setIsRefreshing(true);
+      await refetch();
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
+    }
+    setPullDistance(0);
+    setTouchStart(0);
+  };
 
   // Filter and sort
   const filteredAnalyses = sharedAnalyses
@@ -29,7 +62,30 @@ export default function Community() {
     });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      {pullDistance > 0 && (
+        <div 
+          className="fixed top-14 left-0 right-0 flex justify-center z-50 transition-opacity"
+          style={{ 
+            opacity: Math.min(pullDistance / 80, 1),
+            transform: `translateY(${Math.min(pullDistance - 80, 0)}px)`
+          }}
+        >
+          <div className="bg-slate-800 rounded-full px-4 py-2 flex items-center gap-2 shadow-xl">
+            <RefreshCw className={cn("w-4 h-4 text-cyan-400", isRefreshing && "animate-spin")} />
+            <span className="text-sm text-slate-300">
+              {isRefreshing ? 'Refreshing...' : 'Release to refresh'}
+            </span>
+          </div>
+        </div>
+      )}
+      
       {/* Background effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />

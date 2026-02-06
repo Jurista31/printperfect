@@ -171,12 +171,46 @@ export default function Home() {
   const [currentAnalysis, setCurrentAnalysis] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [multiAngleMode, setMultiAngleMode] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
   const queryClient = useQueryClient();
 
-  const { data: analyses = [] } = useQuery({
+  const { data: analyses = [], refetch } = useQuery({
     queryKey: ['analyses'],
     queryFn: () => base44.entities.PrintAnalysis.list('-created_date', 50),
   });
+
+  // Pull-to-refresh for history
+  const [touchStart, setTouchStart] = useState(0);
+  
+  const handleHistoryTouchStart = (e) => {
+    const scrollContainer = e.currentTarget;
+    if (scrollContainer.scrollTop === 0) {
+      setTouchStart(e.touches[0].clientY);
+    }
+  };
+
+  const handleHistoryTouchMove = (e) => {
+    const scrollContainer = e.currentTarget;
+    if (scrollContainer.scrollTop === 0 && touchStart > 0) {
+      const distance = e.touches[0].clientY - touchStart;
+      if (distance > 0) {
+        setPullDistance(Math.min(distance, 100));
+      }
+    }
+  };
+
+  const handleHistoryTouchEnd = async () => {
+    if (pullDistance > 60) {
+      setIsRefreshing(true);
+      await refetch();
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
+    }
+    setPullDistance(0);
+    setTouchStart(0);
+  };
 
   const createAnalysisMutation = useMutation({
     mutationFn: (data) => base44.entities.PrintAnalysis.create(data),
@@ -288,7 +322,28 @@ export default function Home() {
                   Analysis History
                 </SheetTitle>
               </SheetHeader>
-              <div className="mt-6 -mx-2 px-2 overflow-y-auto max-h-[calc(100vh-120px)]">
+              <div 
+                className="mt-6 -mx-2 px-2 overflow-y-auto max-h-[calc(100vh-120px)] relative"
+                onTouchStart={handleHistoryTouchStart}
+                onTouchMove={handleHistoryTouchMove}
+                onTouchEnd={handleHistoryTouchEnd}
+              >
+                {pullDistance > 0 && (
+                  <div 
+                    className="absolute top-0 left-0 right-0 flex justify-center transition-opacity"
+                    style={{ 
+                      opacity: Math.min(pullDistance / 60, 1),
+                      transform: `translateY(${Math.max(pullDistance - 60, 0)}px)`
+                    }}
+                  >
+                    <div className="bg-slate-800 rounded-full px-3 py-1.5 flex items-center gap-2">
+                      <RefreshCw className={cn("w-3.5 h-3.5 text-cyan-400", isRefreshing && "animate-spin")} />
+                      <span className="text-xs text-slate-300">
+                        {isRefreshing ? 'Refreshing...' : 'Pull to refresh'}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <AnalysisHistory
                   analyses={analyses}
                   onSelect={handleSelectFromHistory}
