@@ -52,13 +52,44 @@ export default function CommunityCard({ sharedAnalysis, index }) {
         });
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['like', sharedAnalysis.id] });
-      queryClient.invalidateQueries({ queryKey: ['shared-analyses'] });
+    onMutate: async () => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['shared-analyses'] });
+      
+      // Snapshot previous value
+      const previousAnalyses = queryClient.getQueryData(['shared-analyses']);
+      
+      // Optimistically update like count
+      queryClient.setQueryData(['shared-analyses'], (old) => {
+        if (!old) return old;
+        return old.map(item => 
+          item.id === sharedAnalysis.id
+            ? { 
+                ...item, 
+                likes_count: userLike 
+                  ? Math.max(0, (item.likes_count || 0) - 1)
+                  : (item.likes_count || 0) + 1
+              }
+            : item
+        );
+      });
+      
+      // Optimistically update user like status
+      queryClient.setQueryData(['like', sharedAnalysis.id], userLike ? null : { id: 'optimistic' });
+      
+      return { previousAnalyses };
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousAnalyses) {
+        queryClient.setQueryData(['shared-analyses'], context.previousAnalyses);
+      }
       toast.error('Failed to update like');
       console.error(error);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['like', sharedAnalysis.id] });
+      queryClient.invalidateQueries({ queryKey: ['shared-analyses'] });
     }
   });
 

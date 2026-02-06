@@ -41,15 +41,60 @@ export default function CommentSection({ sharedAnalysisId }) {
 
       return comment;
     },
+    onMutate: async (content) => {
+      const user = await base44.auth.me();
+      
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['comments', sharedAnalysisId] });
+      await queryClient.cancelQueries({ queryKey: ['shared-analyses'] });
+      
+      // Snapshot previous values
+      const previousComments = queryClient.getQueryData(['comments', sharedAnalysisId]);
+      const previousAnalyses = queryClient.getQueryData(['shared-analyses']);
+      
+      // Optimistically add comment
+      const optimisticComment = {
+        id: `optimistic-${Date.now()}`,
+        shared_analysis_id: sharedAnalysisId,
+        user_name: user.full_name || user.email.split('@')[0],
+        content,
+        created_date: new Date().toISOString()
+      };
+      
+      queryClient.setQueryData(['comments', sharedAnalysisId], (old) => {
+        return old ? [...old, optimisticComment] : [optimisticComment];
+      });
+      
+      // Optimistically update comment count
+      queryClient.setQueryData(['shared-analyses'], (old) => {
+        if (!old) return old;
+        return old.map(item => 
+          item.id === sharedAnalysisId
+            ? { ...item, comments_count: (item.comments_count || 0) + 1 }
+            : item
+        );
+      });
+      
+      return { previousComments, previousAnalyses };
+    },
+    onError: (error, variables, context) => {
+      // Rollback on error
+      if (context?.previousComments) {
+        queryClient.setQueryData(['comments', sharedAnalysisId], context.previousComments);
+      }
+      if (context?.previousAnalyses) {
+        queryClient.setQueryData(['shared-analyses'], context.previousAnalyses);
+      }
+      toast.error('Failed to post comment');
+      console.error(error);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['comments', sharedAnalysisId] });
-      queryClient.invalidateQueries({ queryKey: ['shared-analyses'] });
       setNewComment('');
       toast.success('Comment added');
     },
-    onError: (error) => {
-      toast.error('Failed to post comment');
-      console.error(error);
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', sharedAnalysisId] });
+      queryClient.invalidateQueries({ queryKey: ['shared-analyses'] });
     }
   });
 

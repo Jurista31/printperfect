@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { Home, Users, MessageSquare, Lightbulb, Wand2, Settings } from 'lucide-react';
@@ -12,6 +12,24 @@ export default function Layout({ children, currentPageName }) {
   const location = useLocation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [lastClickedTab, setLastClickedTab] = useState(null);
+  
+  // Preserve scroll positions per page
+  const scrollPositions = useRef({});
+  const lastPage = useRef(currentPageName);
+  
+  useEffect(() => {
+    // Save scroll position when leaving a page
+    if (lastPage.current !== currentPageName) {
+      scrollPositions.current[lastPage.current] = window.scrollY;
+      lastPage.current = currentPageName;
+      
+      // Restore scroll position for the new page
+      const savedPosition = scrollPositions.current[currentPageName] || 0;
+      requestAnimationFrame(() => {
+        window.scrollTo(0, savedPosition);
+      });
+    }
+  }, [currentPageName]);
   
   const navItems = [
     { name: 'Analyze', icon: Home, page: 'Home' },
