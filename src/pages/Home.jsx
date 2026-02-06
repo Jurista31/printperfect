@@ -195,6 +195,10 @@ export default function Home() {
     if (scrollContainer.scrollTop === 0 && touchStart > 0) {
       const distance = e.touches[0].clientY - touchStart;
       if (distance > 0) {
+        // Prevent browser back gesture conflict
+        if (distance > 10) {
+          e.preventDefault();
+        }
         setPullDistance(Math.min(distance, 100));
       }
     }

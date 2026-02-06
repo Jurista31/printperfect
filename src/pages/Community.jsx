@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Users, Filter, TrendingUp, Clock, Flame, RefreshCw } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MobileSelect } from "@/components/ui/mobile-select";
 import CommunityCard from '@/components/community/CommunityCard';
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,10 @@ export default function Community() {
     if (window.scrollY === 0 && touchStart > 0) {
       const distance = e.touches[0].clientY - touchStart;
       if (distance > 0) {
+        // Prevent conflict with browser gestures
+        if (distance > 10) {
+          e.preventDefault();
+        }
         setPullDistance(Math.min(distance, 120));
       }
     }
@@ -139,20 +144,24 @@ export default function Community() {
             </TabsList>
           </Tabs>
 
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="bg-slate-800 border-slate-700 text-white w-full sm:w-48">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                <SelectValue />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700 text-white">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="successful">✅ Successful</SelectItem>
-              <SelectItem value="problematic">⚠️ Problematic</SelectItem>
-              <SelectItem value="work_in_progress">🔧 Work in Progress</SelectItem>
-            </SelectContent>
-          </Select>
+          <MobileSelect 
+            value={filterStatus} 
+            onValueChange={setFilterStatus}
+            title="Filter by Status"
+            trigger={
+              <SelectTrigger className="bg-slate-800 border-slate-700 text-white w-full sm:w-48">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  <SelectValue />
+                </div>
+              </SelectTrigger>
+            }
+          >
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="successful">✅ Successful</SelectItem>
+            <SelectItem value="problematic">⚠️ Problematic</SelectItem>
+            <SelectItem value="work_in_progress">🔧 Work in Progress</SelectItem>
+          </MobileSelect>
         </motion.div>
 
         {/* Community Feed */}

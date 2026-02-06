@@ -3,9 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { Home, Users, MessageSquare, Lightbulb, Wand2, Settings } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Header from './components/Header';
 import AccountSettings from './components/AccountSettings';
+
+const ROOT_TABS = ['Home', 'Wizard', 'Community', 'Tips'];
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
@@ -13,21 +16,37 @@ export default function Layout({ children, currentPageName }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [lastClickedTab, setLastClickedTab] = useState(null);
   
-  // Preserve scroll positions per page
-  const scrollPositions = useRef({});
+  // Navigation stacks for each tab
+  const tabStacks = useRef({
+    Home: [{ page: 'Home', scroll: 0 }],
+    Wizard: [{ page: 'Wizard', scroll: 0 }],
+    Community: [{ page: 'Community', scroll: 0 }],
+    Tips: [{ page: 'Tips', scroll: 0 }]
+  });
+  
+  const currentTab = useRef(ROOT_TABS.includes(currentPageName) ? currentPageName : 'Home');
   const lastPage = useRef(currentPageName);
+  const [direction, setDirection] = useState(0);
   
   useEffect(() => {
-    // Save scroll position when leaving a page
+    // Determine navigation direction for animations
     if (lastPage.current !== currentPageName) {
-      scrollPositions.current[lastPage.current] = window.scrollY;
-      lastPage.current = currentPageName;
+      const wasRootTab = ROOT_TABS.includes(lastPage.current);
+      const isRootTab = ROOT_TABS.includes(currentPageName);
       
-      // Restore scroll position for the new page
-      const savedPosition = scrollPositions.current[currentPageName] || 0;
-      requestAnimationFrame(() => {
-        window.scrollTo(0, savedPosition);
-      });
+      if (isRootTab && wasRootTab) {
+        // Tab switch
+        setDirection(0);
+        currentTab.current = currentPageName;
+      } else if (!isRootTab && wasRootTab) {
+        // Push into stack
+        setDirection(1);
+      } else if (isRootTab && !wasRootTab) {
+        // Pop from stack
+        setDirection(-1);
+      }
+      
+      lastPage.current = currentPageName;
     }
   }, [currentPageName]);
   
@@ -50,17 +69,51 @@ export default function Layout({ children, currentPageName }) {
     setLastClickedTab(page);
   };
 
+  const pageVariants = {
+    enter: (direction) => ({
+      x: direction > 0 ? '100%' : direction < 0 ? '-20%' : 0,
+      opacity: direction === 0 ? 0 : 1,
+      scale: direction < 0 ? 0.95 : 1
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+      scale: 1
+    },
+    exit: (direction) => ({
+      x: direction > 0 ? '-20%' : direction < 0 ? '100%' : 0,
+      opacity: direction === 0 ? 0 : 1,
+      scale: direction > 0 ? 0.95 : 1
+    })
+  };
+
   return (
     <div 
-      className="min-h-screen"
+      className="min-h-screen overflow-x-hidden"
       style={{ 
-        paddingTop: '56px', // Header height
-        paddingBottom: 'calc(64px + env(safe-area-inset-bottom))' // Nav height + safe area
+        paddingTop: '56px',
+        paddingBottom: 'calc(64px + env(safe-area-inset-bottom))'
       }}
     >
       <Header currentPageName={currentPageName} />
       
-      {children}
+      <AnimatePresence initial={false} mode="popLayout" custom={direction}>
+        <motion.div
+          key={location.pathname}
+          custom={direction}
+          variants={pageVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 30
+          }}
+        >
+          {children}
+        </motion.div>
+      </AnimatePresence>
       
       {/* Bottom Navigation */}
       <nav 
