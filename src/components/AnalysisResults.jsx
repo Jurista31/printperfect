@@ -9,6 +9,9 @@ import FeedbackDialog from "./FeedbackDialog";
 import EnhancedPrinterSettings from "./EnhancedPrinterSettings";
 import ImageWithDefectOverlay from "./ImageWithDefectOverlay";
 import DefectLegend from "./DefectLegend";
+import PredictiveAnalysis from "./PredictiveAnalysis";
+import AdvancedTroubleshooting from "./AdvancedTroubleshooting";
+import CommunityComparison from "./CommunityComparison";
 import { cn } from "@/lib/utils";
 
 const qualityConfig = {
@@ -217,6 +220,21 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
           <h3 className="text-xl font-semibold text-emerald-300 mb-2">No Defects Found!</h3>
           <p className="text-slate-400">Your print looks great. Keep up the good work!</p>
         </motion.div>
+      )}
+
+      {/* Community Comparison */}
+      {analysis.community_comparison && (
+        <CommunityComparison data={analysis.community_comparison} />
+      )}
+
+      {/* Predictive Analysis */}
+      {analysis.predictive_analysis && (
+        <PredictiveAnalysis data={analysis.predictive_analysis} />
+      )}
+
+      {/* Advanced Troubleshooting */}
+      {analysis.advanced_troubleshooting && (
+        <AdvancedTroubleshooting data={analysis.advanced_troubleshooting} />
       )}
 
       {/* Printer Settings Suggestions */}

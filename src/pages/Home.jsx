@@ -99,6 +99,27 @@ PRINTER SETTINGS - For each suggestion, specify:
 - Why this helps the specific defect
 - Priority (critical/important/minor)
 
+PREDICTIVE FAILURE ANALYSIS:
+Based on current defect patterns, predict:
+- Potential failures if defects worsen (next 5-10 prints)
+- Early warning signs to watch for
+- Critical parameters at risk
+- Preventive maintenance recommendations
+
+ADVANCED TROUBLESHOOTING:
+Consider additional factors:
+- Filament quality indicators (brittleness, moisture absorption, age)
+- Environmental factors (temperature, humidity, drafts)
+- Printer age and wear patterns
+- Material-specific issues (PLA vs PETG vs ABS)
+- Maintenance schedule adherence
+
+COMMUNITY COMPARISON:
+- Rate this print quality vs typical community standards (percentile: 1-100)
+- Common issues for similar prints in the community
+- Your print's standout strengths compared to average
+- Areas where this print underperforms vs community
+
 ANALYSIS OUTPUT:
 - Overall quality: poor/fair/good/excellent (be honest, most prints have some issues)
 - Summary: 2-3 sentences on print condition
@@ -161,9 +182,39 @@ const ANALYSIS_SCHEMA = {
           related_defects: { type: "array", items: { type: "string" } }
         }
       } 
+    },
+    predictive_analysis: {
+      type: "object",
+      properties: {
+        potential_failures: { type: "array", items: { type: "string" } },
+        warning_signs: { type: "array", items: { type: "string" } },
+        critical_parameters: { type: "array", items: { type: "string" } },
+        preventive_maintenance: { type: "array", items: { type: "string" } }
+      },
+      required: ["potential_failures", "warning_signs", "critical_parameters", "preventive_maintenance"]
+    },
+    advanced_troubleshooting: {
+      type: "object",
+      properties: {
+        filament_quality_indicators: { type: "array", items: { type: "string" } },
+        environmental_factors: { type: "array", items: { type: "string" } },
+        printer_wear_patterns: { type: "array", items: { type: "string" } },
+        material_specific_issues: { type: "array", items: { type: "string" } }
+      },
+      required: ["filament_quality_indicators", "environmental_factors"]
+    },
+    community_comparison: {
+      type: "object",
+      properties: {
+        quality_percentile: { type: "number", minimum: 1, maximum: 100 },
+        common_issues_comparison: { type: "string" },
+        strengths: { type: "array", items: { type: "string" } },
+        improvement_areas: { type: "array", items: { type: "string" } }
+      },
+      required: ["quality_percentile", "common_issues_comparison", "strengths", "improvement_areas"]
     }
   },
-  required: ["defects", "overall_quality", "summary", "confidence_level", "printer_settings_suggestions"]
+  required: ["defects", "overall_quality", "summary", "confidence_level", "printer_settings_suggestions", "predictive_analysis", "advanced_troubleshooting", "community_comparison"]
 };
 
 export default function Home() {
