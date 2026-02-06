@@ -191,11 +191,7 @@ export default function Landing() {
                 transition={{ delay: 0.8 + index * 0.1 }}
                 className="group relative bg-slate-800/40 backdrop-blur-sm rounded-3xl p-8 border border-slate-700/50 hover:border-slate-600 transition-all duration-500 hover:scale-[1.02]"
               >
-                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-3xl" style={{ 
-                  backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))`,
-                  '--tw-gradient-from': feature.gradient.split(' ')[1],
-                  '--tw-gradient-to': feature.gradient.split(' ')[3]
-                } as any} />
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-3xl`} />
                 
                 <div className="relative">
                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.gradient} bg-opacity-10 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
