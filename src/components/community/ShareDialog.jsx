@@ -164,19 +164,20 @@ export default function ShareDialog({ analysis, open, onOpenChange }) {
 
                 <div className="space-y-2">
                   <Label htmlFor="status">Status *</Label>
-                  <Select
-                    value={formData.status}
+                  <MobileSelect 
+                    value={formData.status} 
                     onValueChange={(value) => setFormData({...formData, status: value})}
+                    title="Print Status"
+                    trigger={
+                      <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                    }
                   >
-                    <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-700 text-white">
-                      <SelectItem value="successful">✅ Successful Print</SelectItem>
-                      <SelectItem value="problematic">⚠️ Problematic Print</SelectItem>
-                      <SelectItem value="work_in_progress">🔧 Work in Progress</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <SelectItem value="successful">✅ Successful Print</SelectItem>
+                    <SelectItem value="problematic">⚠️ Problematic Print</SelectItem>
+                    <SelectItem value="work_in_progress">🔧 Work in Progress</SelectItem>
+                  </MobileSelect>
                 </div>
 
                 <div className="space-y-2">
