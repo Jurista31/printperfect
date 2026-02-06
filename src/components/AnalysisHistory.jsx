@@ -43,13 +43,19 @@ export default function AnalysisHistory({ analyses, onSelect, selectedId }) {
                 : "bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 hover:border-slate-600"
             )}
           >
-            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-700">
-              {analysis.image_url && (
+            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-slate-700 flex items-center justify-center">
+              {analysis.image_url ? (
                 <img
                   src={analysis.image_url}
                   alt="Print"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.parentElement.innerHTML = '<div class="text-slate-500 text-xs">No image</div>';
+                  }}
                 />
+              ) : (
+                <span className="text-slate-500 text-xs">No image</span>
               )}
             </div>
             <div className="flex-1 min-w-0">
