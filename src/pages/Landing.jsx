@@ -2,30 +2,35 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { motion } from 'framer-motion';
-import { Printer, Camera, Zap, Target, Users, ArrowRight, CheckCircle2, Smartphone } from 'lucide-react';
+import { Printer, Camera, Zap, Target, Users, ArrowRight, CheckCircle2, Smartphone, Wand2, Lightbulb, Brain, Star } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export default function Landing() {
   const features = [
     {
       icon: Camera,
-      title: "Instant Analysis",
-      description: "Snap a photo and get AI-powered defect detection in seconds"
+      title: "AI Vision Analysis",
+      description: "Advanced computer vision detects 30+ defects with pinpoint accuracy",
+      gradient: "from-cyan-500 to-blue-500"
     },
     {
-      icon: Target,
-      title: "20+ Defects Detected",
-      description: "Identifies layer issues, warping, stringing, and more"
+      icon: Wand2,
+      title: "Smart Wizard",
+      description: "Interactive troubleshooting guides you to the perfect solution",
+      gradient: "from-purple-500 to-pink-500"
     },
     {
-      icon: Zap,
-      title: "Smart Solutions",
-      description: "Get step-by-step fixes and printer settings recommendations"
+      icon: Lightbulb,
+      title: "Personalized Tips",
+      description: "AI learns from your prints to provide custom improvement advice",
+      gradient: "from-amber-500 to-orange-500"
     },
     {
       icon: Users,
-      title: "Community Sharing",
-      description: "Learn from others and share your success stories"
+      title: "Global Community",
+      description: "Share successes, learn from 1000s of prints worldwide",
+      gradient: "from-emerald-500 to-teal-500"
     }
   ];
 
@@ -59,58 +64,76 @@ export default function Landing() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
+          className="text-center mb-20"
         >
-          {/* Logo */}
+          {/* Logo with animated glow */}
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
             transition={{ type: "spring", stiffness: 200, damping: 20 }}
-            className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-500 mb-6 shadow-2xl shadow-cyan-500/20"
+            className="relative inline-flex items-center justify-center mb-6"
           >
-            <Printer className="w-10 h-10 text-white" />
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-purple-500 to-teal-500 rounded-3xl blur-2xl opacity-30 animate-pulse" />
+            <div className="relative w-24 h-24 rounded-3xl bg-gradient-to-br from-cyan-500 via-purple-500 to-teal-500 flex items-center justify-center shadow-2xl">
+              <Printer className="w-12 h-12 text-white" />
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="mb-4"
+          >
+            <Badge className="bg-cyan-500/10 text-cyan-300 border-cyan-500/30 px-4 py-1 mb-4">
+              <Brain className="w-3 h-3 mr-1.5" />
+              Powered by Advanced AI
+            </Badge>
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-5xl md:text-6xl font-bold text-white mb-4"
+            transition={{ delay: 0.2 }}
+            className="text-5xl md:text-7xl font-bold mb-6"
           >
-            PrintDoc
+            <span className="bg-gradient-to-r from-cyan-400 via-purple-400 to-teal-400 bg-clip-text text-transparent">
+              PrintDoc
+            </span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-xl md:text-2xl text-slate-300 mb-8 max-w-2xl mx-auto"
+            transition={{ delay: 0.3 }}
+            className="text-xl md:text-3xl text-white font-semibold mb-4 max-w-3xl mx-auto"
           >
-            Your AI-Powered 3D Print Defect Analyzer
+            Turn Failed Prints into Perfect Results
           </motion.p>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="text-slate-400 mb-10 max-w-xl mx-auto"
+            transition={{ delay: 0.4 }}
+            className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed"
           >
-            Instantly identify print defects, understand what went wrong, and get expert solutions to fix your prints.
+            Advanced AI instantly analyzes your 3D prints, detects defects with surgical precision, and provides expert-level solutions — all in seconds.
           </motion.p>
 
           {/* CTA Buttons */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            transition={{ delay: 0.5 }}
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6"
           >
             <Link to={createPageUrl('Home')}>
               <Button
                 size="lg"
-                className="h-14 px-8 text-lg bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-semibold rounded-xl shadow-xl shadow-cyan-500/20 transition-all duration-300 hover:scale-105"
+                className="h-16 px-10 text-lg bg-gradient-to-r from-cyan-600 via-purple-600 to-teal-600 hover:from-cyan-500 hover:via-purple-500 hover:to-teal-500 text-white font-bold rounded-2xl shadow-2xl shadow-cyan-500/30 transition-all duration-300 hover:scale-105 hover:shadow-cyan-500/50"
               >
-                Launch App <ArrowRight className="ml-2 w-5 h-5" />
+                Start Analyzing Free
+                <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
 
@@ -118,30 +141,45 @@ export default function Landing() {
               size="lg"
               variant="outline"
               onClick={handleInstallClick}
-              className="h-14 px-8 text-lg border-2 border-slate-700 hover:border-cyan-500 text-white font-semibold rounded-xl transition-all duration-300 hover:bg-slate-800"
+              className="h-16 px-8 text-lg border-2 border-slate-700 hover:border-purple-500 text-white font-semibold rounded-2xl transition-all duration-300 hover:bg-slate-800 hover:scale-105"
             >
               <Smartphone className="mr-2 w-5 h-5" />
               Install App
             </Button>
           </motion.div>
 
-          {/* Install hint */}
-          <motion.p
+          {/* Social proof & features */}
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="text-sm text-slate-500 mt-4"
+            transition={{ delay: 0.6 }}
+            className="flex flex-wrap justify-center items-center gap-6 text-sm text-slate-400"
           >
-            💡 Works offline • No download needed • Install to home screen
-          </motion.p>
+            <div className="flex items-center gap-1.5">
+              <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+              <span>AI-Powered Analysis</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>100% Free</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Zap className="w-4 h-4 text-cyan-400" />
+              <span>Instant Results</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Smartphone className="w-4 h-4 text-purple-400" />
+              <span>Works Offline</span>
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* Features Grid */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16"
+          transition={{ delay: 0.7 }}
+          className="grid md:grid-cols-2 gap-6 mb-20"
         >
           {features.map((feature, index) => {
             const Icon = feature.icon;
@@ -150,14 +188,22 @@ export default function Landing() {
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 + index * 0.1 }}
-                className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 hover:border-cyan-500/50 transition-all duration-300 hover:scale-105"
+                transition={{ delay: 0.8 + index * 0.1 }}
+                className="group relative bg-slate-800/40 backdrop-blur-sm rounded-3xl p-8 border border-slate-700/50 hover:border-slate-600 transition-all duration-500 hover:scale-[1.02]"
               >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-teal-500/20 flex items-center justify-center mb-4">
-                  <Icon className="w-6 h-6 text-cyan-400" />
+                <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity duration-500 rounded-3xl" style={{ 
+                  backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))`,
+                  '--tw-gradient-from': feature.gradient.split(' ')[1],
+                  '--tw-gradient-to': feature.gradient.split(' ')[3]
+                } as any} />
+                
+                <div className="relative">
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.gradient} bg-opacity-10 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-3">{feature.title}</h3>
+                  <p className="text-slate-400 leading-relaxed">{feature.description}</p>
                 </div>
-                <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-                <p className="text-slate-400 text-sm">{feature.description}</p>
               </motion.div>
             );
           })}
@@ -167,42 +213,72 @@ export default function Landing() {
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1 }}
-          className="bg-slate-800/30 backdrop-blur-sm rounded-3xl p-8 md:p-12 border border-slate-700/50 mb-16"
+          transition={{ delay: 1.2 }}
+          className="relative bg-gradient-to-br from-slate-800/50 to-slate-800/30 backdrop-blur-sm rounded-3xl p-8 md:p-16 border border-slate-700/50 mb-20 overflow-hidden"
         >
-          <h2 className="text-3xl font-bold text-white text-center mb-12">
-            How It Works
-          </h2>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-cyan-500/20 flex items-center justify-center mx-auto mb-4 border-2 border-cyan-500">
-                <span className="text-2xl font-bold text-cyan-400">1</span>
-              </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Capture</h3>
-              <p className="text-slate-400">
-                Take a photo or upload an image of your 3D print. Multi-angle support for better accuracy.
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 via-purple-500/5 to-teal-500/5 pointer-events-none" />
+          
+          <div className="relative">
+            <div className="text-center mb-14">
+              <Badge className="bg-purple-500/10 text-purple-300 border-purple-500/30 px-4 py-1 mb-4">
+                Simple & Powerful
+              </Badge>
+              <h2 className="text-4xl font-bold text-white mb-4">
+                How It Works
+              </h2>
+              <p className="text-slate-400 max-w-2xl mx-auto">
+                From photo to solution in under 10 seconds
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-teal-500/20 flex items-center justify-center mx-auto mb-4 border-2 border-teal-500">
-                <span className="text-2xl font-bold text-teal-400">2</span>
+            <div className="grid md:grid-cols-3 gap-8 md:gap-12">
+              <div className="relative text-center group">
+                <div className="relative inline-flex items-center justify-center mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity" />
+                  <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center transform group-hover:scale-110 transition-transform shadow-xl">
+                    <Camera className="w-10 h-10 text-white" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold text-sm">
+                    1
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">Capture</h3>
+                <p className="text-slate-400 leading-relaxed">
+                  Snap a quick photo or upload images from any angle. Multi-angle mode boosts accuracy.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Analyze</h3>
-              <p className="text-slate-400">
-                Our AI analyzes your print, detecting defects and pinpointing exact locations on the image.
-              </p>
-            </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4 border-2 border-purple-500">
-                <span className="text-2xl font-bold text-purple-400">3</span>
+              <div className="relative text-center group">
+                <div className="relative inline-flex items-center justify-center mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity" />
+                  <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center transform group-hover:scale-110 transition-transform shadow-xl">
+                    <Brain className="w-10 h-10 text-white" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                    2
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">AI Analysis</h3>
+                <p className="text-slate-400 leading-relaxed">
+                  Advanced computer vision scans every detail, mapping defects with pixel-perfect precision.
+                </p>
               </div>
-              <h3 className="text-xl font-semibold text-white mb-3">Fix</h3>
-              <p className="text-slate-400">
-                Get detailed solutions, printer setting recommendations, and share results with the community.
-              </p>
+
+              <div className="relative text-center group">
+                <div className="relative inline-flex items-center justify-center mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full blur-xl opacity-20 group-hover:opacity-40 transition-opacity" />
+                  <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center transform group-hover:scale-110 transition-transform shadow-xl">
+                    <Zap className="w-10 h-10 text-white" />
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-sm">
+                    3
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-3">Get Solutions</h3>
+                <p className="text-slate-400 leading-relaxed">
+                  Receive expert-level fixes, exact settings, and prevention tips — instantly.
+                </p>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -211,35 +287,45 @@ export default function Landing() {
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2 }}
-          className="max-w-2xl mx-auto"
+          transition={{ delay: 1.6 }}
+          className="max-w-4xl mx-auto mb-20"
         >
-          <h2 className="text-3xl font-bold text-white text-center mb-8">
-            Why PrintDoc?
-          </h2>
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-white mb-4">
+              Everything You Need to Master 3D Printing
+            </h2>
+            <p className="text-slate-400 text-lg">
+              Professional-grade tools, completely free
+            </p>
+          </div>
 
-          <div className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
             {[
-              "Identifies 20+ common 3D printing defects instantly",
-              "Provides step-by-step solutions tailored to your issue",
-              "Visual defect mapping shows exactly where problems are",
-              "Printer settings recommendations with priority levels",
-              "Community features to share and learn from others",
-              "Works offline once installed - no internet required",
-              "Multi-angle analysis for higher accuracy",
-              "Complete analysis history to track improvements"
-            ].map((benefit, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.3 + index * 0.05 }}
-                className="flex items-start gap-3 bg-slate-800/30 rounded-xl p-4 border border-slate-700/30"
-              >
-                <CheckCircle2 className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                <span className="text-slate-300">{benefit}</span>
-              </motion.div>
-            ))}
+              { icon: Target, text: "Detects 30+ defect types with AI precision" },
+              { icon: Brain, text: "Learns from your prints for personalized tips" },
+              { icon: Wand2, text: "Interactive troubleshooting wizard" },
+              { icon: Camera, text: "Visual defect mapping with bounding boxes" },
+              { icon: Zap, text: "Instant analysis in 5-10 seconds" },
+              { icon: CheckCircle2, text: "Step-by-step solutions with priority levels" },
+              { icon: Users, text: "Share & learn from global community" },
+              { icon: Smartphone, text: "Works offline after first install" }
+            ].map((benefit, index) => {
+              const Icon = benefit.icon;
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.7 + index * 0.05 }}
+                  className="flex items-center gap-4 bg-slate-800/40 backdrop-blur-sm rounded-2xl p-5 border border-slate-700/50 hover:border-cyan-500/30 transition-all duration-300 group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <Icon className="w-6 h-6 text-cyan-400" />
+                  </div>
+                  <span className="text-slate-300 font-medium">{benefit.text}</span>
+                </motion.div>
+              );
+            })}
           </div>
         </motion.div>
 
@@ -247,20 +333,42 @@ export default function Landing() {
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.8 }}
-          className="text-center mt-16"
+          transition={{ delay: 2 }}
+          className="relative bg-gradient-to-r from-cyan-500/10 via-purple-500/10 to-teal-500/10 rounded-3xl p-12 md:p-16 border border-cyan-500/20 text-center overflow-hidden"
         >
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">
-            Ready to Perfect Your Prints?
-          </h2>
-          <Link to={createPageUrl('Home')}>
-            <Button
-              size="lg"
-              className="h-14 px-10 text-lg bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-semibold rounded-xl shadow-xl shadow-cyan-500/20 transition-all duration-300 hover:scale-105"
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzA4OGFhNiIgc3Ryb2tlLXdpZHRoPSIwLjUiIG9wYWNpdHk9IjAuMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30" />
+          
+          <div className="relative">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 2.1, type: "spring" }}
+              className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-purple-500 mb-6 mx-auto"
             >
-              Get Started Free <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
+              <Star className="w-8 h-8 text-white fill-white" />
+            </motion.div>
+
+            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
+              Ready to Perfect Your Prints?
+            </h2>
+            <p className="text-slate-400 text-lg mb-8 max-w-2xl mx-auto">
+              Join thousands of makers using AI to solve print problems faster than ever.
+            </p>
+            
+            <Link to={createPageUrl('Home')}>
+              <Button
+                size="lg"
+                className="h-16 px-12 text-lg bg-gradient-to-r from-cyan-600 via-purple-600 to-teal-600 hover:from-cyan-500 hover:via-purple-500 hover:to-teal-500 text-white font-bold rounded-2xl shadow-2xl shadow-cyan-500/30 transition-all duration-300 hover:scale-105 hover:shadow-cyan-500/50"
+              >
+                Start Analyzing Now — It's Free
+                <ArrowRight className="ml-3 w-6 h-6" />
+              </Button>
+            </Link>
+
+            <p className="text-sm text-slate-500 mt-6">
+              No sign-up required • Instant access • Works on any device
+            </p>
+          </div>
         </motion.div>
       </div>
     </div>

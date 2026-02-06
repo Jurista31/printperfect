@@ -47,20 +47,20 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import Chat from './pages/Chat';
 import Community from './pages/Community';
 import Home from './pages/Home';
 import Landing from './pages/Landing';
-import Chat from './pages/Chat';
 import Tips from './pages/Tips';
 import Wizard from './pages/Wizard';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "Chat": Chat,
     "Community": Community,
     "Home": Home,
     "Landing": Landing,
-    "Chat": Chat,
     "Tips": Tips,
     "Wizard": Wizard,
 }
