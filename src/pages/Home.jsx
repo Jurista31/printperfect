@@ -287,12 +287,30 @@ export default function Home() {
       const uploads = await Promise.all(uploadPromises);
       const fileUrls = uploads.map(u => u.file_url);
       
-      // Enhanced prompt for multi-angle
-      const enhancedPrompt = files.length > 1 
-        ? `${ANALYSIS_PROMPT}\n\nIMPORTANT: You are analyzing ${files.length} images of the SAME print from different angles. Cross-reference all angles and provide a unified, high-confidence analysis. Note which defects are visible from which image number (1-${files.length}).`
-        : ANALYSIS_PROMPT;
+      // Fetch learned patterns from community data
+      let learnedSection = '';
+      try {
+        const learningResponse = await base44.functions.invoke('enhanceAnalysisPrompt', {});
+        if (learningResponse.data?.enhancedSection) {
+          learnedSection = learningResponse.data.enhancedSection;
+        }
+      } catch (error) {
+        console.error('Failed to fetch learned patterns:', error);
+        // Continue without learned patterns
+      }
       
-      // Analyze with AI
+      // Enhanced prompt with multi-angle + learned patterns
+      let enhancedPrompt = ANALYSIS_PROMPT;
+      
+      if (learnedSection) {
+        enhancedPrompt = `${ANALYSIS_PROMPT}\n\n${learnedSection}`;
+      }
+      
+      if (files.length > 1) {
+        enhancedPrompt += `\n\nIMPORTANT: You are analyzing ${files.length} images of the SAME print from different angles. Cross-reference all angles and provide a unified, high-confidence analysis. Note which defects are visible from which image number (1-${files.length}).`;
+      }
+      
+      // Analyze with AI using enhanced prompt
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: enhancedPrompt,
         file_urls: fileUrls,
