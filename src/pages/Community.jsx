@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Users, Filter, TrendingUp, Clock, Flame, RefreshCw } from 'lucide-react';
+import { Users, TrendingUp, Clock, Flame, RefreshCw } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MobileSelect } from "@/components/ui/mobile-select";
 import CommunityCard from '@/components/community/CommunityCard';
+import CommunityFilters from '@/components/community/CommunityFilters';
 import { cn } from "@/lib/utils";
 
 export default function Community() {
@@ -14,6 +15,13 @@ export default function Community() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  const [filters, setFilters] = useState({
+    search: '',
+    printerModel: [],
+    material: [],
+    defectCategories: [],
+    hasSettings: false
+  });
 
   const { data: sharedAnalyses = [], isLoading, refetch } = useQuery({
     queryKey: ['shared-analyses'],
@@ -56,7 +64,56 @@ export default function Community() {
 
   // Filter and sort
   const filteredAnalyses = sharedAnalyses
-    .filter(analysis => filterStatus === 'all' || analysis.status === filterStatus)
+    .filter(analysis => {
+      // Status filter
+      if (filterStatus !== 'all' && analysis.status !== filterStatus) return false;
+      
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const matchesTitle = analysis.title?.toLowerCase().includes(searchLower);
+        const matchesDescription = analysis.description?.toLowerCase().includes(searchLower);
+        const matchesDefects = analysis.defects?.some(d => 
+          d.name?.toLowerCase().includes(searchLower)
+        );
+        if (!matchesTitle && !matchesDescription && !matchesDefects) return false;
+      }
+      
+      // Printer model filter
+      if (filters.printerModel.length > 0) {
+        if (!analysis.print_profile?.printer_model) return false;
+        const matches = filters.printerModel.some(model => 
+          analysis.print_profile.printer_model.toLowerCase().includes(model.toLowerCase())
+        );
+        if (!matches) return false;
+      }
+      
+      // Material filter
+      if (filters.material.length > 0) {
+        if (!analysis.print_profile?.material) return false;
+        if (!filters.material.includes(analysis.print_profile.material)) return false;
+      }
+      
+      // Defect categories filter (check against defect names)
+      if (filters.defectCategories.length > 0) {
+        if (!analysis.defects || analysis.defects.length === 0) return false;
+        const hasMatchingCategory = analysis.defects.some(defect =>
+          filters.defectCategories.some(cat =>
+            defect.name?.toLowerCase().includes(cat.toLowerCase().split(' ')[0])
+          )
+        );
+        if (!hasMatchingCategory) return false;
+      }
+      
+      // Has settings filter
+      if (filters.hasSettings) {
+        if (!analysis.print_profile || 
+            !analysis.print_profile.printer_model || 
+            !analysis.print_profile.material) return false;
+      }
+      
+      return true;
+    })
     .sort((a, b) => {
       if (sortBy === 'popular') {
         return (b.likes_count || 0) - (a.likes_count || 0);
@@ -120,48 +177,50 @@ export default function Community() {
           </p>
         </motion.header>
 
-        {/* Filters */}
+        {/* Advanced Filters */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-6 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between"
+          className="mb-6 space-y-4"
         >
-          <Tabs value={sortBy} onValueChange={setSortBy} className="w-full sm:w-auto">
-            <TabsList className="bg-slate-800 border border-slate-700 w-full sm:w-auto">
-              <TabsTrigger value="recent" className="flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Recent
-              </TabsTrigger>
-              <TabsTrigger value="popular" className="flex items-center gap-2">
-                <Flame className="w-4 h-4" />
-                Popular
-              </TabsTrigger>
-              <TabsTrigger value="discussed" className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Most Discussed
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <CommunityFilters filters={filters} onFiltersChange={setFilters} />
 
-          <MobileSelect 
-            value={filterStatus} 
-            onValueChange={setFilterStatus}
-            title="Filter by Status"
-            trigger={
-              <SelectTrigger className="bg-slate-800 border-slate-700 text-white w-full sm:w-48">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4" />
+          {/* Sort and Status Filter */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+            <Tabs value={sortBy} onValueChange={setSortBy} className="w-full sm:w-auto">
+              <TabsList className="bg-slate-800 border border-slate-700 w-full sm:w-auto">
+                <TabsTrigger value="recent" className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Recent
+                </TabsTrigger>
+                <TabsTrigger value="popular" className="flex items-center gap-2">
+                  <Flame className="w-4 h-4" />
+                  Popular
+                </TabsTrigger>
+                <TabsTrigger value="discussed" className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Discussed
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <MobileSelect 
+              value={filterStatus} 
+              onValueChange={setFilterStatus}
+              title="Filter by Status"
+              trigger={
+                <SelectTrigger className="bg-slate-800 border-slate-700 text-white w-full sm:w-48">
                   <SelectValue />
-                </div>
-              </SelectTrigger>
-            }
-          >
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="successful">✅ Successful</SelectItem>
-            <SelectItem value="problematic">⚠️ Problematic</SelectItem>
-            <SelectItem value="work_in_progress">🔧 Work in Progress</SelectItem>
-          </MobileSelect>
+                </SelectTrigger>
+              }
+            >
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="successful">✅ Successful</SelectItem>
+              <SelectItem value="problematic">⚠️ Problematic</SelectItem>
+              <SelectItem value="work_in_progress">🔧 Work in Progress</SelectItem>
+            </MobileSelect>
+          </div>
         </motion.div>
 
         {/* Community Feed */}
