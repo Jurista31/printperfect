@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Sparkles, Plus, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from 'sonner';
 
 const PREDEFINED_CATEGORIES = [
   "Extrusion Issues",
@@ -15,63 +16,52 @@ const PREDEFINED_CATEGORIES = [
   "Mechanical Issues",
   "Material Issues",
   "Support Problems",
-  "Retraction Issues",
-  "Speed Issues"
+  "Dimensional Accuracy",
+  "Flow Issues"
 ];
 
 export default function CategorySelector({ 
   defectName, 
-  defectDescription, 
+  defectDescription,
   selectedCategories = [], 
   customTags = [],
   onCategoriesChange,
   onCustomTagsChange 
 }) {
-  const [aiSuggested, setAiSuggested] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [newTag, setNewTag] = useState('');
 
   useEffect(() => {
-    if (defectName && defectDescription) {
-      suggestCategories();
+    if (defectName) {
+      fetchSuggestions();
     }
-  }, [defectName, defectDescription]);
+  }, [defectName]);
 
-  const suggestCategories = async () => {
-    setIsLoading(true);
+  const fetchSuggestions = async () => {
+    setLoadingSuggestions(true);
     try {
-      const prompt = `You are an expert 3D printing defect classifier. Based on the following defect information, suggest 2-3 most relevant categories from this list: ${PREDEFINED_CATEGORIES.join(', ')}.
-
-Defect Name: ${defectName}
-Description: ${defectDescription}
-
-Return ONLY a JSON array of category names that match exactly from the list above. Example: ["Extrusion Issues", "Temperature-Related"]`;
-
-      const result = await base44.integrations.Core.InvokeLLM({
-        prompt,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            categories: {
-              type: "array",
-              items: { type: "string" }
-            }
-          }
-        }
+      const response = await base44.functions.invoke('suggestCategories', {
+        defectName,
+        defectDescription
       });
-
-      const suggested = result.categories || [];
-      setAiSuggested(suggested);
       
-      // Auto-select AI suggestions that aren't already selected
-      const newSelections = suggested.filter(cat => !selectedCategories.includes(cat));
-      if (newSelections.length > 0) {
-        onCategoriesChange([...selectedCategories, ...newSelections]);
+      if (response.data.suggestedCategories) {
+        setSuggestions(response.data.suggestedCategories);
+        
+        // Auto-select high confidence suggestions
+        const highConfidence = response.data.suggestedCategories
+          .filter(s => s.confidence === 'high')
+          .map(s => s.category);
+        
+        if (highConfidence.length > 0 && selectedCategories.length === 0) {
+          onCategoriesChange(highConfidence);
+        }
       }
     } catch (error) {
-      console.error('Failed to suggest categories:', error);
+      console.error('Failed to fetch suggestions:', error);
     } finally {
-      setIsLoading(false);
+      setLoadingSuggestions(false);
     }
   };
 
@@ -96,42 +86,61 @@ Return ONLY a JSON array of category names that match exactly from the list abov
 
   return (
     <div className="space-y-4">
-      {/* AI Suggestions Header */}
-      {isLoading && (
+      {/* AI Suggestions */}
+      {loadingSuggestions ? (
         <div className="flex items-center gap-2 text-sm text-cyan-400">
           <Loader2 className="w-4 h-4 animate-spin" />
-          <span>AI analyzing defect pattern...</span>
+          Analyzing defect patterns...
         </div>
-      )}
-
-      {aiSuggested.length > 0 && !isLoading && (
-        <div className="flex items-center gap-2 text-sm">
-          <Sparkles className="w-4 h-4 text-cyan-400" />
-          <span className="text-slate-400">AI Suggested Categories</span>
+      ) : suggestions.length > 0 && (
+        <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="w-4 h-4 text-cyan-400" />
+            <span className="text-sm font-medium text-cyan-400">AI Suggestions</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map(({ category, confidence }) => (
+              <button
+                key={category}
+                onClick={() => toggleCategory(category)}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-sm transition-all border",
+                  selectedCategories.includes(category)
+                    ? "bg-cyan-500/20 border-cyan-500 text-cyan-300"
+                    : "bg-slate-800 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                )}
+              >
+                {category}
+                {confidence === 'high' && <span className="ml-1">✨</span>}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
       {/* Predefined Categories */}
       <div>
-        <label className="text-xs text-slate-400 block mb-2">Select Categories</label>
+        <label className="text-sm font-medium text-slate-300 mb-2 block">
+          Categories
+        </label>
         <div className="flex flex-wrap gap-2">
           {PREDEFINED_CATEGORIES.map(category => {
+            const isSuggested = suggestions.some(s => s.category === category);
             const isSelected = selectedCategories.includes(category);
-            const isAiSuggested = aiSuggested.includes(category);
             
             return (
               <button
                 key={category}
                 onClick={() => toggleCategory(category)}
                 className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm transition-all border-2",
+                  "px-3 py-2 rounded-lg text-sm transition-all border",
                   isSelected
                     ? "bg-cyan-500/20 border-cyan-500 text-cyan-300"
-                    : "bg-slate-800 border-slate-600 text-slate-400 hover:border-slate-500",
-                  isAiSuggested && !isSelected && "border-cyan-500/30 ring-2 ring-cyan-500/20"
+                    : isSuggested
+                    ? "bg-cyan-500/5 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                    : "bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600"
                 )}
               >
-                {isAiSuggested && <Sparkles className="w-3 h-3 inline mr-1" />}
                 {category}
               </button>
             );
@@ -141,19 +150,20 @@ Return ONLY a JSON array of category names that match exactly from the list abov
 
       {/* Custom Tags */}
       <div>
-        <label className="text-xs text-slate-400 block mb-2">Custom Tags</label>
+        <label className="text-sm font-medium text-slate-300 mb-2 block">
+          Custom Tags
+        </label>
         <div className="flex gap-2 mb-2">
           <Input
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomTag())}
+            onKeyPress={(e) => e.key === 'Enter' && addCustomTag()}
             placeholder="Add custom tag..."
-            className="bg-slate-800 border-slate-600 text-white"
+            className="bg-slate-800 border-slate-700 text-white"
           />
           <Button
             onClick={addCustomTag}
-            disabled={!newTag.trim()}
-            size="sm"
+            size="icon"
             className="bg-slate-700 hover:bg-slate-600"
           >
             <Plus className="w-4 h-4" />

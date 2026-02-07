@@ -14,6 +14,7 @@ import AdvancedTroubleshooting from "./AdvancedTroubleshooting";
 import CommunityComparison from "./CommunityComparison";
 import DefectCorrection from "./DefectCorrection";
 import AddMissedDefect from "./AddMissedDefect";
+import SmartSolutionRecommendations from "./SmartSolutionRecommendations";
 import { cn } from "@/lib/utils";
 
 const qualityConfig = {
@@ -273,6 +274,13 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
       {/* Advanced Troubleshooting */}
       {analysis.advanced_troubleshooting && (
         <AdvancedTroubleshooting data={analysis.advanced_troubleshooting} />
+      )}
+
+      {/* Smart Solution Recommendations */}
+      {defectCount > 0 && (
+        <SmartSolutionRecommendations 
+          defectType={analysis.defects[0]?.name}
+        />
       )}
 
       {/* Printer Settings Suggestions */}
