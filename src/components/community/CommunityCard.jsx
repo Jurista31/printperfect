@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import CommentSection from "./CommentSection";
+import SolutionVotes from "./SolutionVotes";
 import { toast } from "sonner";
 
 const statusConfig = {
@@ -160,18 +161,22 @@ export default function CommunityCard({ sharedAnalysis, index }) {
           </div>
         )}
 
-        {/* Solutions Applied */}
+        {/* Solutions Applied with Voting */}
         {sharedAnalysis.solutions_applied && sharedAnalysis.solutions_applied.length > 0 && (
-          <div className="bg-gradient-to-br from-cyan-500/5 to-teal-500/5 rounded-lg p-3 border border-cyan-500/20">
-            <p className="text-xs font-medium text-cyan-400 uppercase mb-2">Solutions Applied</p>
-            <ul className="space-y-1.5">
-              {sharedAnalysis.solutions_applied.map((solution, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+          <div className="bg-gradient-to-br from-cyan-500/5 to-teal-500/5 rounded-lg p-3 border border-cyan-500/20 space-y-3">
+            <p className="text-xs font-medium text-cyan-400 uppercase">Solutions Applied</p>
+            {sharedAnalysis.solutions_applied.map((solution, i) => (
+              <div key={i} className="flex items-start justify-between gap-3">
+                <p className="text-sm text-slate-300 flex-1 flex items-start gap-2">
                   <span className="text-cyan-400 mt-0.5">✓</span>
                   {solution}
-                </li>
-              ))}
-            </ul>
+                </p>
+                <SolutionVotes
+                  sharedAnalysisId={sharedAnalysis.id}
+                  solution={solution}
+                />
+              </div>
+            ))}
           </div>
         )}
 
