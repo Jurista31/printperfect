@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Check, X, Edit3, AlertTriangle, Save } from "lucide-react";
 import { toast } from 'sonner';
 import { cn } from "@/lib/utils";
+import CategorySelector from "./CategorySelector";
 
 export default function DefectCorrection({ defect, defectIndex, analysisId, onCorrectionSaved }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -17,6 +18,8 @@ export default function DefectCorrection({ defect, defectIndex, analysisId, onCo
   const [isFalsePositive, setIsFalsePositive] = useState(false);
   const [userNotes, setUserNotes] = useState('');
   const [confidence, setConfidence] = useState('certain');
+  const [categories, setCategories] = useState([]);
+  const [customTags, setCustomTags] = useState([]);
 
   const saveCorrectionMutation = useMutation({
     mutationFn: (data) => base44.entities.DefectCorrection.create(data),
@@ -50,7 +53,9 @@ export default function DefectCorrection({ defect, defectIndex, analysisId, onCo
       corrected_severity: correctedSeverity,
       is_false_positive: isFalsePositive,
       user_notes: userNotes || undefined,
-      confidence
+      confidence,
+      categories: categories.length > 0 ? categories : undefined,
+      custom_tags: customTags.length > 0 ? customTags : undefined
     };
 
     saveCorrectionMutation.mutate(correctionData);
@@ -173,6 +178,18 @@ export default function DefectCorrection({ defect, defectIndex, analysisId, onCo
               </button>
             </div>
           </div>
+        )}
+
+        {/* Category Selector */}
+        {isEditing && (
+          <CategorySelector
+            defectName={correctedName}
+            defectDescription={defect.description || userNotes}
+            selectedCategories={categories}
+            customTags={customTags}
+            onCategoriesChange={setCategories}
+            onCustomTagsChange={setCustomTags}
+          />
         )}
 
         {/* Save Button */}

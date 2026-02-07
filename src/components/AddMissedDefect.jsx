@@ -9,12 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Save } from "lucide-react";
 import { toast } from 'sonner';
+import CategorySelector from "./CategorySelector";
 
 export default function AddMissedDefect({ analysisId, open, onOpenChange, onDefectAdded }) {
   const [defectName, setDefectName] = useState('');
   const [severity, setSeverity] = useState('medium');
   const [description, setDescription] = useState('');
   const [userNotes, setUserNotes] = useState('');
+  const [categories, setCategories] = useState([]);
+  const [customTags, setCustomTags] = useState([]);
 
   const addDefectMutation = useMutation({
     mutationFn: (data) => base44.entities.MissedDefect.create(data),
@@ -34,6 +37,8 @@ export default function AddMissedDefect({ analysisId, open, onOpenChange, onDefe
     setSeverity('medium');
     setDescription('');
     setUserNotes('');
+    setCategories([]);
+    setCustomTags([]);
   };
 
   const handleSubmit = () => {
@@ -48,7 +53,9 @@ export default function AddMissedDefect({ analysisId, open, onOpenChange, onDefe
       severity,
       description,
       user_notes: userNotes || undefined,
-      location: { x: 0, y: 0, width: 100, height: 100 } // Full image by default
+      location: { x: 0, y: 0, width: 100, height: 100 },
+      categories: categories.length > 0 ? categories : undefined,
+      custom_tags: customTags.length > 0 ? customTags : undefined
     };
 
     addDefectMutation.mutate(defectData);
@@ -112,6 +119,16 @@ export default function AddMissedDefect({ analysisId, open, onOpenChange, onDefe
               className="bg-slate-800 border-slate-700 text-white min-h-[60px]"
             />
           </div>
+
+          {/* Category Selector */}
+          <CategorySelector
+            defectName={defectName}
+            defectDescription={description}
+            selectedCategories={categories}
+            customTags={customTags}
+            onCategoriesChange={setCategories}
+            onCustomTagsChange={setCustomTags}
+          />
 
           {/* Submit Button */}
           <Button
