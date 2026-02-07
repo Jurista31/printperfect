@@ -14,26 +14,33 @@ export default function CameraCapture({ onCapture, isAnalyzing, multiAngle = fal
 
   const startCamera = async () => {
     try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
-      });
+      const constraints = {
+        video: { 
+          facingMode: facingMode,
+          width: { ideal: 1920 }, 
+          height: { ideal: 1080 }
+        },
+        audio: false
+      };
+      
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        // Wait for video to load metadata
-        await new Promise((resolve) => {
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play();
-            resolve();
-          };
-        });
+        setCameraActive(true);
+        setStream(mediaStream);
+        
+        // Ensure video plays
+        try {
+          await videoRef.current.play();
+        } catch (playErr) {
+          console.warn("Autoplay prevented:", playErr);
+        }
       }
-      
-      setStream(mediaStream);
-      setCameraActive(true);
     } catch (err) {
-      console.error("Camera access denied:", err);
-      alert("Unable to access camera. Please check permissions in your browser settings.");
+      console.error("Camera error:", err);
+      alert(`Camera error: ${err.message || 'Unable to access camera'}`);
+      setCameraActive(false);
     }
   };
 
@@ -165,7 +172,9 @@ export default function CameraCapture({ onCapture, isAnalyzing, multiAngle = fal
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
                 className="w-full aspect-[4/3] object-cover"
+                style={{ transform: 'scaleX(-1)' }}
               />
               <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute inset-8 border-2 border-cyan-400/30 rounded-lg" />
@@ -194,7 +203,11 @@ export default function CameraCapture({ onCapture, isAnalyzing, multiAngle = fal
                   <div className="w-12 h-12 rounded-full border-4 border-slate-900" />
                 </Button>
                 <Button
-                  onClick={() => setFacingMode(f => f === 'environment' ? 'user' : 'environment')}
+                  onClick={() => {
+                    stopCamera();
+                    setFacingMode(f => f === 'environment' ? 'user' : 'environment');
+                    setTimeout(() => startCamera(), 100);
+                  }}
                   variant="ghost"
                   className="w-12 h-12 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white"
                 >
