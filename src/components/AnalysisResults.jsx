@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff, MessageSquare, Edit, Plus } from "lucide-react";
+import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff, MessageSquare, Edit, Plus, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import DefectCard from "./DefectCard";
 import ShareDialog from "./community/ShareDialog";
 import FeedbackDialog from "./FeedbackDialog";
+import SolutionWorkflow from "./SolutionWorkflow";
 import EnhancedPrinterSettings from "./EnhancedPrinterSettings";
 import ImageWithDefectOverlay from "./ImageWithDefectOverlay";
 import DefectLegend from "./DefectLegend";
@@ -54,6 +55,7 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
   const [showOverlays, setShowOverlays] = useState(true);
   const [missedDefectOpen, setMissedDefectOpen] = useState(false);
   const [showCorrections, setShowCorrections] = useState(false);
+  const [workflowOpen, setWorkflowOpen] = useState(false);
   const quality = qualityConfig[analysis.overall_quality] || qualityConfig.fair;
   const QualityIcon = quality.icon;
   const defectCount = analysis.defects?.length || 0;
@@ -290,13 +292,21 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
 
       {/* Action Buttons */}
       <div className="space-y-3">
+        <Button
+          onClick={() => setWorkflowOpen(true)}
+          className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-xl transition-all duration-300"
+        >
+          <Sparkles className="w-5 h-5 mr-2" />
+          Document Solution
+        </Button>
+
         <div className="flex gap-3">
           <Button
             onClick={() => setShareDialogOpen(true)}
             className="flex-1 h-14 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-medium rounded-xl transition-all duration-300"
           >
             <Share2 className="w-5 h-5 mr-2" />
-            Share
+            Quick Share
           </Button>
           <Button
             onClick={onNewAnalysis}
@@ -317,6 +327,12 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
       </div>
 
       {/* Dialogs */}
+      <SolutionWorkflow
+        analysis={analysis}
+        open={workflowOpen}
+        onOpenChange={setWorkflowOpen}
+        onComplete={() => {}}
+      />
       <ShareDialog
         analysis={analysis}
         open={shareDialogOpen}
