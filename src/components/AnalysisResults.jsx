@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff, MessageSquare } from "lucide-react";
+import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff, MessageSquare, Edit, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import DefectCard from "./DefectCard";
@@ -12,6 +12,8 @@ import DefectLegend from "./DefectLegend";
 import PredictiveAnalysis from "./PredictiveAnalysis";
 import AdvancedTroubleshooting from "./AdvancedTroubleshooting";
 import CommunityComparison from "./CommunityComparison";
+import DefectCorrection from "./DefectCorrection";
+import AddMissedDefect from "./AddMissedDefect";
 import { cn } from "@/lib/utils";
 
 const qualityConfig = {
@@ -49,6 +51,8 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [showOverlays, setShowOverlays] = useState(true);
+  const [missedDefectOpen, setMissedDefectOpen] = useState(false);
+  const [showCorrections, setShowCorrections] = useState(false);
   const quality = qualityConfig[analysis.overall_quality] || qualityConfig.fair;
   const QualityIcon = quality.icon;
   const defectCount = analysis.defects?.length || 0;
@@ -203,10 +207,44 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
             <h2 className="text-lg font-semibold text-white">
               {defectCount} {defectCount === 1 ? 'Issue' : 'Issues'} Detected
             </h2>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => setShowCorrections(!showCorrections)}
+                variant={showCorrections ? "default" : "outline"}
+                className={cn(
+                  "transition-all",
+                  showCorrections 
+                    ? "bg-cyan-600 hover:bg-cyan-500" 
+                    : "border-cyan-600 text-cyan-400 hover:bg-cyan-500/10"
+                )}
+              >
+                <Edit className="w-4 h-4 mr-1" />
+                {showCorrections ? 'Done' : 'Correct'}
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setMissedDefectOpen(true)}
+                className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Missed
+              </Button>
+            </div>
           </div>
           <div className="space-y-3">
             {analysis.defects.map((defect, index) => (
-              <DefectCard key={index} defect={defect} index={index} />
+              showCorrections ? (
+                <DefectCorrection
+                  key={index}
+                  defect={defect}
+                  defectIndex={index}
+                  analysisId={analysis.id}
+                  onCorrectionSaved={() => {}}
+                />
+              ) : (
+                <DefectCard key={index} defect={defect} index={index} />
+              )
             ))}
           </div>
         </div>
@@ -280,6 +318,12 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
         analysis={analysis}
         open={feedbackDialogOpen}
         onOpenChange={setFeedbackDialogOpen}
+      />
+      <AddMissedDefect
+        analysisId={analysis.id}
+        open={missedDefectOpen}
+        onOpenChange={setMissedDefectOpen}
+        onDefectAdded={() => {}}
       />
     </motion.div>
   );
