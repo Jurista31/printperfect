@@ -17,11 +17,23 @@ export default function CameraCapture({ onCapture, isAnalyzing, multiAngle = fal
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } }
       });
-      videoRef.current.srcObject = mediaStream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        // Wait for video to load metadata
+        await new Promise((resolve) => {
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play();
+            resolve();
+          };
+        });
+      }
+      
       setStream(mediaStream);
       setCameraActive(true);
     } catch (err) {
       console.error("Camera access denied:", err);
+      alert("Unable to access camera. Please check permissions in your browser settings.");
     }
   };
 
