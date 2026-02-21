@@ -122,7 +122,12 @@ COMMUNITY COMPARISON:
 
 ANALYSIS OUTPUT:
 - Overall quality: poor/fair/good/excellent (be honest, most prints have some issues)
-- Summary: 2-3 sentences on print condition
+- Summary: Write a concise, informative 3-4 sentence paragraph that condenses:
+  1. Overall quality assessment and key findings
+  2. The most critical defects identified (top 2-3 issues)
+  3. Primary root causes and immediate next steps
+  4. Top priority recommendations for improvement
+  Make it clear, actionable, and easy to understand for quick decision-making.
 - Confidence level: How certain are you about the analysis (low/medium/high)
 - Settings suggestions: Context-aware, defect-specific recommendations (5-10 items)
 

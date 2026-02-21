@@ -188,15 +188,24 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
         )}
       </div>
 
-      {/* Summary */}
+      {/* AI Summary - Enhanced */}
       {analysis.summary && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 border border-slate-700/50"
+          className="bg-gradient-to-br from-cyan-500/10 to-teal-500/10 backdrop-blur-sm rounded-xl p-6 border border-cyan-500/30 shadow-lg shadow-cyan-500/5"
         >
-          <p className="text-slate-300 leading-relaxed">{analysis.summary}</p>
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide">AI Analysis Summary</h3>
+              <p className="text-xs text-slate-400">Quick overview of key findings</p>
+            </div>
+          </div>
+          <p className="text-slate-200 leading-relaxed text-base">{analysis.summary}</p>
         </motion.div>
       )}
 
