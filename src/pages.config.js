@@ -49,6 +49,7 @@
  */
 import Chat from './pages/Chat';
 import Community from './pages/Community';
+import CommunitySolutions from './pages/CommunitySolutions';
 import Home from './pages/Home';
 import Landing from './pages/Landing';
 import Tips from './pages/Tips';
@@ -59,6 +60,7 @@ import __Layout from './Layout.jsx';
 export const PAGES = {
     "Chat": Chat,
     "Community": Community,
+    "CommunitySolutions": CommunitySolutions,
     "Home": Home,
     "Landing": Landing,
     "Tips": Tips,

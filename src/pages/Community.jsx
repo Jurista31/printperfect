@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Users, TrendingUp, Clock, Flame, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, TrendingUp, Clock, Flame, RefreshCw, Wrench, ArrowRight } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MobileSelect } from "@/components/ui/mobile-select";
@@ -175,6 +176,23 @@ export default function Community() {
           <p className="text-slate-400 mt-3">
             Learn from others' experiences and share your own 3D printing journey
           </p>
+
+          {/* Solutions feed shortcut */}
+          <Link
+            to="/CommunitySolutions"
+            className="mt-4 flex items-center justify-between bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 hover:border-emerald-500/50 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                <Wrench className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-300">Community Solutions</p>
+                <p className="text-xs text-slate-500">Filter verified fixes by printer, material & defect</p>
+              </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+          </Link>
         </motion.header>
 
         {/* Advanced Filters */}
