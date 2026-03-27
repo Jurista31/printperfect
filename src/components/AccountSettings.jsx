@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Trash2, User, Mail, Shield, Loader2 } from 'lucide-react';
 import { toast } from "sonner";
+import PrinterProfiles from './PrinterProfiles';
 
 export default function AccountSettings({ onClose }) {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -81,6 +82,11 @@ export default function AccountSettings({ onClose }) {
             Role: <span className="text-white font-medium capitalize">{user.role}</span>
           </span>
         </div>
+      </div>
+
+      {/* Printer Profiles */}
+      <div className="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50">
+        <PrinterProfiles />
       </div>
 
       {/* Account Actions */}

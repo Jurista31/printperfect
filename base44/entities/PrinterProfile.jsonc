@@ -1,0 +1,72 @@
+{
+  "name": "PrinterProfile",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Profile name (e.g. 'My Ender 3', 'Work Prusa')"
+    },
+    "printer_model": {
+      "type": "string",
+      "description": "Printer model name"
+    },
+    "nozzle_size": {
+      "type": "string",
+      "description": "Default nozzle diameter (e.g. 0.4mm)"
+    },
+    "common_materials": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Materials commonly used with this printer"
+    },
+    "default_material": {
+      "type": "string",
+      "description": "Most frequently used material"
+    },
+    "default_nozzle_temp": {
+      "type": "number",
+      "description": "Typical nozzle temperature in Celsius"
+    },
+    "default_bed_temp": {
+      "type": "number",
+      "description": "Typical bed temperature in Celsius"
+    },
+    "default_print_speed": {
+      "type": "number",
+      "description": "Typical print speed in mm/s"
+    },
+    "default_layer_height": {
+      "type": "number",
+      "description": "Typical layer height in mm"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about this printer"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is the currently selected profile"
+    }
+  },
+  "required": [
+    "name",
+    "printer_model"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

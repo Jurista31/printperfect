@@ -292,23 +292,44 @@ export default function Home() {
       const uploads = await Promise.all(uploadPromises);
       const fileUrls = uploads.map(u => u.file_url);
       
-      // Fetch learned patterns from community data
+      // Fetch learned patterns and active printer profile in parallel
       let learnedSection = '';
+      let printerProfileSection = '';
       try {
-        const learningResponse = await base44.functions.invoke('enhanceAnalysisPrompt', {});
-        if (learningResponse.data?.enhancedSection) {
+        const [learningResponse, profiles] = await Promise.all([
+          base44.functions.invoke('enhanceAnalysisPrompt', {}).catch(() => null),
+          base44.entities.PrinterProfile.filter({ is_active: true }, '-created_date', 1).catch(() => [])
+        ]);
+        if (learningResponse?.data?.enhancedSection) {
           learnedSection = learningResponse.data.enhancedSection;
         }
+        if (profiles?.length > 0) {
+          const p = profiles[0];
+          printerProfileSection = `\n\n**USER'S ACTIVE PRINTER PROFILE — USE THIS FOR TAILORED ADVICE:**
+- Printer Model: ${p.printer_model}
+- Nozzle Size: ${p.nozzle_size || 'unknown'}
+- Common Materials: ${(p.common_materials || []).join(', ') || 'unknown'}
+- Default Material: ${p.default_material || 'unknown'}
+${p.default_nozzle_temp ? `- Typical Nozzle Temp: ${p.default_nozzle_temp}°C` : ''}
+${p.default_bed_temp ? `- Typical Bed Temp: ${p.default_bed_temp}°C` : ''}
+${p.default_print_speed ? `- Typical Print Speed: ${p.default_print_speed}mm/s` : ''}
+${p.default_layer_height ? `- Typical Layer Height: ${p.default_layer_height}mm` : ''}
+${p.notes ? `- Printer Notes: ${p.notes}` : ''}
+
+IMPORTANT: Tailor ALL defect causes, solutions, and printer settings suggestions specifically for this printer model and setup. Reference its specific quirks if relevant. Suggest settings values calibrated to this printer's typical operating range.`;
+        }
       } catch (error) {
-        console.error('Failed to fetch learned patterns:', error);
-        // Continue without learned patterns
+        console.error('Failed to fetch context:', error);
       }
       
-      // Enhanced prompt with multi-angle + learned patterns
+      // Enhanced prompt with multi-angle + learned patterns + printer profile
       let enhancedPrompt = ANALYSIS_PROMPT;
       
+      if (printerProfileSection) {
+        enhancedPrompt = enhancedPrompt + printerProfileSection;
+      }
       if (learnedSection) {
-        enhancedPrompt = `${ANALYSIS_PROMPT}\n\n${learnedSection}`;
+        enhancedPrompt = enhancedPrompt + `\n\n${learnedSection}`;
       }
       
       if (files.length > 1) {
