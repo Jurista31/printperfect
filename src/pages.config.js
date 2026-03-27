@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import Chat from './pages/Chat';
+import Compare from './pages/Compare';
 import History from './pages/History';
 import Community from './pages/Community';
 import CommunitySolutions from './pages/CommunitySolutions';
@@ -60,6 +61,7 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "Chat": Chat,
+    "Compare": Compare,
     "History": History,
     "Community": Community,
     "CommunitySolutions": CommunitySolutions,
