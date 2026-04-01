@@ -296,13 +296,24 @@ export default function Home() {
       let learnedSection = '';
       let printerProfileSection = '';
       try {
-        const [learningResponse, profiles] = await Promise.all([
+        const [learningResponse, profiles, recentMaintenance] = await Promise.all([
           base44.functions.invoke('enhanceAnalysisPrompt', {}).catch(() => null),
-          base44.entities.PrinterProfile.filter({ is_active: true }, '-created_date', 1).catch(() => [])
+          base44.entities.PrinterProfile.filter({ is_active: true }, '-created_date', 1).catch(() => []),
+          base44.entities.MaintenanceLog.list('-performed_at', 10).catch(() => [])
         ]);
         if (learningResponse?.data?.enhancedSection) {
           learnedSection = learningResponse.data.enhancedSection;
         }
+        if (recentMaintenance?.length > 0) {
+          const maintLines = recentMaintenance.slice(0, 6).map(m => {
+            const typeLabel = m.event_type?.replace(/_/g, ' ') || 'maintenance';
+            const result = m.result ? ` (${m.result.replace(/_/g, ' ')})` : '';
+            const notes = m.notes ? ` — "${m.notes}"` : '';
+            return `- ${m.performed_at}: ${typeLabel}${result}${notes}`;
+          }).join('\n');
+          printerProfileSection += `\n\n**RECENT MAINTENANCE HISTORY (use for root-cause analysis):**\n${maintLines}\n\nIMPORTANT: Cross-reference these maintenance events with any defects you find. For example: if a nozzle was recently replaced and stringing appears, the new nozzle temperature may need recalibration. If bed leveling was done recently and first-layer issues exist, re-leveling may be needed. If lubrication happened and ghosting appears, over-lubrication could be the cause. Always reference relevant maintenance in your root-cause analysis.`;
+        }
+
         if (profiles?.length > 0) {
           const p = profiles[0];
           printerProfileSection = `\n\n**USER'S ACTIVE PRINTER PROFILE — USE THIS FOR TAILORED ADVICE:**

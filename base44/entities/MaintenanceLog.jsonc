@@ -1,0 +1,71 @@
+{
+  "name": "MaintenanceLog",
+  "type": "object",
+  "properties": {
+    "printer_profile_id": {
+      "type": "string",
+      "description": "Reference to PrinterProfile"
+    },
+    "printer_name": {
+      "type": "string",
+      "description": "Cached printer name for display"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "nozzle_replacement",
+        "bed_leveling",
+        "belt_tension",
+        "lubrication",
+        "cleaning",
+        "firmware_update",
+        "repair",
+        "calibration",
+        "filament_change",
+        "other"
+      ],
+      "description": "Type of maintenance event"
+    },
+    "performed_at": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the maintenance was performed"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional context or observations"
+    },
+    "prints_since_last": {
+      "type": "number",
+      "description": "Approximate number of prints since this was last done"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "resolved_issue",
+        "preventive",
+        "issue_persists",
+        "caused_new_issue"
+      ],
+      "description": "Outcome of the maintenance"
+    }
+  },
+  "required": [
+    "event_type",
+    "performed_at"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
