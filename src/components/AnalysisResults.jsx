@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { motion } from "framer-motion";
 import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff, MessageSquare, Edit, Plus, Sparkles, FileDown, Move3d } from "lucide-react";
 import { exportAnalysisPdf } from '@/utils/exportAnalysisPdf';
-import STLViewer from './STLViewer';
+
+const STLViewer = lazy(() => import('./STLViewer'));
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import DefectCard from "./DefectCard";
@@ -215,10 +216,12 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
             </div>
           </button>
         ) : (
-          <STLViewer
-            onStlLoaded={() => setStlLoaded(true)}
-            onStlRemoved={() => setStlLoaded(false)}
-          />
+          <Suspense fallback={<div className="h-44 rounded-xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center"><div className="w-6 h-6 border-2 border-slate-600 border-t-cyan-400 rounded-full animate-spin" /></div>}>
+            <STLViewer
+              onStlLoaded={() => setStlLoaded(true)}
+              onStlRemoved={() => setStlLoaded(false)}
+            />
+          </Suspense>
         )}
         {stlLoaded && (
           <motion.p

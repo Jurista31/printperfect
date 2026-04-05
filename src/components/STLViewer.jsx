@@ -80,7 +80,7 @@ export default function STLViewer({ onStlLoaded, onStlRemoved, compact = false }
   const [expanded, setExpanded] = useState(false);
 
   const initScene = useCallback(() => {
-    if (!mountRef.current) return;
+    if (!mountRef.current || rendererRef.current) return; // prevent double-init
     const width = mountRef.current.clientWidth;
     const height = mountRef.current.clientHeight;
 
