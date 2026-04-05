@@ -285,22 +285,18 @@ export default function Home() {
     try {
       const files = Array.isArray(filesOrFile) ? filesOrFile : [filesOrFile];
       
-      // Upload all images
-      const uploadPromises = files.map(file => 
-        base44.integrations.Core.UploadFile({ file })
-      );
-      const uploads = await Promise.all(uploadPromises);
-      const fileUrls = uploads.map(u => u.file_url);
-      
-      // Fetch learned patterns and active printer profile in parallel
+      // Upload images AND fetch context in parallel
       let learnedSection = '';
       let printerProfileSection = '';
+      const [uploads, learningResponse, profiles, recentMaintenance] = await Promise.all([
+        Promise.all(files.map(file => base44.integrations.Core.UploadFile({ file }))),
+        base44.functions.invoke('enhanceAnalysisPrompt', {}).catch(() => null),
+        base44.entities.PrinterProfile.filter({ is_active: true }, '-created_date', 1).catch(() => []),
+        base44.entities.MaintenanceLog.list('-performed_at', 10).catch(() => [])
+      ]);
+      const fileUrls = uploads.map(u => u.file_url);
+
       try {
-        const [learningResponse, profiles, recentMaintenance] = await Promise.all([
-          base44.functions.invoke('enhanceAnalysisPrompt', {}).catch(() => null),
-          base44.entities.PrinterProfile.filter({ is_active: true }, '-created_date', 1).catch(() => []),
-          base44.entities.MaintenanceLog.list('-performed_at', 10).catch(() => [])
-        ]);
         if (learningResponse?.data?.enhancedSection) {
           learnedSection = learningResponse.data.enhancedSection;
         }
