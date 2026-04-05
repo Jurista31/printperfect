@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   try {
@@ -9,12 +9,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch learning data from all sources
-    const [corrections, missedDefects, sharedAnalyses, allVotes] = await Promise.all([
-      base44.entities.DefectCorrection.list('-created_date', 200),
-      base44.entities.MissedDefect.list('-created_date', 200),
-      base44.entities.SharedAnalysis.list('-created_date', 100),
-      base44.entities.SolutionVote.list('-created_date', 500)
+    // Fetch learning data: community-wide (service role) + personal (user-scoped)
+    const [corrections, missedDefects, sharedAnalyses, allVotes, myCorrections, myMissedDefects, myFeedback] = await Promise.all([
+      base44.asServiceRole.entities.DefectCorrection.list('-created_date', 200),
+      base44.asServiceRole.entities.MissedDefect.list('-created_date', 200),
+      base44.asServiceRole.entities.SharedAnalysis.list('-created_date', 100),
+      base44.asServiceRole.entities.SolutionVote.list('-created_date', 500),
+      base44.entities.DefectCorrection.list('-created_date', 100),
+      base44.entities.MissedDefect.list('-created_date', 100),
+      base44.entities.AnalysisFeedback.list('-created_date', 50)
     ]);
 
     // Build learned patterns
@@ -116,6 +119,59 @@ Deno.serve(async (req) => {
       .sort((a, b) => b.votes - a.votes)
       .slice(0, 10);
 
+    // --- PERSONAL LEARNING ---
+    const personalFalsePositives = {};
+    const personalMissed = {};
+    const personalSeverityCorrections = [];
+    const personalLowRatedDefects = {};
+
+    myCorrections.forEach(c => {
+      if (c.is_false_positive) {
+        const name = c.original_name.toLowerCase();
+        personalFalsePositives[name] = (personalFalsePositives[name] || 0) + 1;
+      }
+      if (c.corrected_severity && c.original_severity && c.corrected_severity !== c.original_severity) {
+        personalSeverityCorrections.push(
+          `"${c.original_name}": AI said ${c.original_severity}, you corrected to ${c.corrected_severity}`
+        );
+      }
+    });
+
+    myMissedDefects.forEach(m => {
+      const name = m.defect_name.toLowerCase();
+      personalMissed[name] = (personalMissed[name] || 0) + 1;
+    });
+
+    // Low-rated analyses — which defect types appeared in analyses rated 1-2 stars
+    myFeedback.filter(f => f.rating <= 2).forEach(f => {
+      if (f.false_positives) {
+        f.false_positives.forEach(fp => {
+          const name = fp.toLowerCase();
+          personalLowRatedDefects[name] = (personalLowRatedDefects[name] || 0) + 1;
+        });
+      }
+    });
+
+    const hasPersonalData = myCorrections.length > 0 || myMissedDefects.length > 0;
+
+    const personalSection = hasPersonalData ? `
+**YOUR PERSONAL CORRECTION HISTORY (${myCorrections.length} corrections, ${myMissedDefects.length} missed defects reported):**
+
+${Object.keys(personalFalsePositives).length > 0 ? `🚫 YOU'VE MARKED THESE AS FALSE POSITIVES ON YOUR PRINTS:
+${Object.entries(personalFalsePositives).map(([d, c]) => `- ${d} (${c}x)`).join('\n')}
+→ Be VERY cautious about flagging these unless you're certain.` : ''}
+
+${Object.keys(personalMissed).length > 0 ? `🔍 DEFECTS YOU'VE CAUGHT THAT AI MISSED ON YOUR PRINTS:
+${Object.entries(personalMissed).sort((a,b) => b[1]-a[1]).map(([d, c]) => `- ${d} (${c}x)`).join('\n')}
+→ Look EXTRA carefully for these in this analysis.` : ''}
+
+${personalSeverityCorrections.length > 0 ? `⚖️ YOUR SEVERITY CORRECTIONS (you tend to rate differently than AI):
+${personalSeverityCorrections.slice(0, 5).join('\n')}
+→ Calibrate severity accordingly for your prints.` : ''}
+
+Apply this personal history to give a more accurate analysis tailored to your specific printing patterns.
+` : '';
+
     // Build enhanced prompt additions
     const enhancedSection = `
 **LEARNED PATTERNS FROM COMMUNITY DATA:**
@@ -156,15 +212,19 @@ When you identify similar defects, prioritize suggesting these validated solutio
 **APPLY THIS LEARNING:** Use these patterns to improve accuracy. Avoid false positives, watch for missed defects, and suggest community-validated solutions when relevant.
 `;
 
+    const fullEnhancedSection = personalSection + enhancedSection;
+
     return Response.json({
-      enhancedSection,
+      enhancedSection: fullEnhancedSection,
       stats: {
         totalCorrections: corrections.length,
         totalMissedDefects: missedDefects.length,
         totalCommunityPosts: sharedAnalyses.length,
         totalVotes: allVotes.length,
         falsePositivesIdentified: learnedPatterns.commonFalsePositives.length,
-        missedDefectsIdentified: learnedPatterns.commonMissedDefects.length
+        missedDefectsIdentified: learnedPatterns.commonMissedDefects.length,
+        personalCorrections: myCorrections.length,
+        personalMissedDefects: myMissedDefects.length
       },
       learnedPatterns
     });
