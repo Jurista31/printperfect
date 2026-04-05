@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff, MessageSquare, Edit, Plus, Sparkles } from "lucide-react";
+import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff, MessageSquare, Edit, Plus, Sparkles, FileDown } from "lucide-react";
+import { exportAnalysisPdf } from '@/utils/exportAnalysisPdf';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import DefectCard from "./DefectCard";
@@ -56,6 +57,13 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
   const [missedDefectOpen, setMissedDefectOpen] = useState(false);
   const [showCorrections, setShowCorrections] = useState(false);
   const [workflowOpen, setWorkflowOpen] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const handleExportPdf = async () => {
+    setExportingPdf(true);
+    await exportAnalysisPdf(analysis);
+    setExportingPdf(false);
+  };
   const quality = qualityConfig[analysis.overall_quality] || qualityConfig.fair;
   const QualityIcon = quality.icon;
   const defectCount = analysis.defects?.length || 0;
@@ -324,6 +332,16 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
             <RotateCcw className="w-5 h-5" />
           </Button>
         </div>
+
+        <Button
+          onClick={handleExportPdf}
+          disabled={exportingPdf}
+          variant="outline"
+          className="w-full h-12 border-2 border-slate-600 text-slate-300 hover:bg-slate-700 font-medium rounded-xl transition-all duration-300"
+        >
+          <FileDown className="w-5 h-5 mr-2" />
+          {exportingPdf ? 'Generating PDF...' : 'Export PDF Report'}
+        </Button>
 
         <Button
           onClick={() => setFeedbackDialogOpen(true)}
