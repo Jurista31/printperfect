@@ -342,6 +342,21 @@ IMPORTANT: Tailor ALL defect causes, solutions, and printer settings suggestions
       if (files.length > 1) {
         enhancedPrompt += `\n\nIMPORTANT: You are analyzing ${files.length} images of the SAME print from different angles. Cross-reference all angles and provide a unified, high-confidence analysis. Note which defects are visible from which image number (1-${files.length}).`;
       }
+
+      // STL geometry context — injected when user also uploaded a model file
+      const stlFile = Array.isArray(filesOrFile) 
+        ? filesOrFile.find(f => f.name?.toLowerCase().endsWith('.stl'))
+        : (filesOrFile?.name?.toLowerCase().endsWith('.stl') ? filesOrFile : null);
+      if (stlFile) {
+        enhancedPrompt += `\n\n**3D MODEL GEOMETRY PROVIDED (STL file: "${stlFile.name}"):**
+The user has uploaded the original STL/3D model file alongside their print photos. Use this context to enhance your analysis:
+- Compare the INTENDED geometry (from the STL) against the ACTUAL print visible in the photos
+- Look specifically for: dimensional deviations, warping vs flat surfaces, layer shifts vs straight walls, sagging overhangs vs clean bridging
+- Identify if defects are localized (suggesting settings issues) vs systematic (suggesting geometry/slicing issues)
+- Note any areas where the print appears to deviate from what the geometry should look like
+- Reference the 3D model geometry in your defect descriptions (e.g. "This wall should be vertical per the model but shows X degrees of lean")
+- This comparison increases your ability to detect structural deformations, dimensional accuracy issues, and geometry-specific print failures`;
+      }
       
       // Analyze with AI using enhanced prompt
       const result = await base44.integrations.Core.InvokeLLM({

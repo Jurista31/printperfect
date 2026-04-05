@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from "framer-motion";
-import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff, MessageSquare, Edit, Plus, Sparkles, FileDown } from "lucide-react";
+import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff, MessageSquare, Edit, Plus, Sparkles, FileDown, Move3d } from "lucide-react";
 import { exportAnalysisPdf } from '@/utils/exportAnalysisPdf';
+import STLViewer from './STLViewer';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import DefectCard from "./DefectCard";
@@ -58,6 +59,8 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
   const [showCorrections, setShowCorrections] = useState(false);
   const [workflowOpen, setWorkflowOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [stlLoaded, setStlLoaded] = useState(false);
+  const [showStlViewer, setShowStlViewer] = useState(false);
 
   const handleExportPdf = async () => {
     setExportingPdf(true);
@@ -193,6 +196,38 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
             <Award className="w-4 h-4" />
             {analysis.confidence_level.charAt(0).toUpperCase() + analysis.confidence_level.slice(1)} Confidence
           </motion.div>
+        )}
+      </div>
+
+      {/* STL Model Viewer */}
+      <div>
+        {!showStlViewer ? (
+          <button
+            onClick={() => setShowStlViewer(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800/40 border border-dashed border-slate-600 hover:border-cyan-500/50 hover:bg-slate-800/60 transition-all text-left"
+          >
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
+              <Move3d className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-300">Add 3D Model for Geometry Comparison</p>
+              <p className="text-xs text-slate-500">Upload the original STL to detect layer deviations & deformations</p>
+            </div>
+          </button>
+        ) : (
+          <STLViewer
+            onStlLoaded={() => setStlLoaded(true)}
+            onStlRemoved={() => setStlLoaded(false)}
+          />
+        )}
+        {stlLoaded && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-2 text-xs text-cyan-400 text-center"
+          >
+            ✓ 3D model loaded — compare geometry against the photo above to identify deformations
+          </motion.p>
         )}
       </div>
 
