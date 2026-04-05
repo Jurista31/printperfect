@@ -25,7 +25,8 @@ export default function CommunityCard({ sharedAnalysis, index }) {
   const { data: userLike } = useQuery({
     queryKey: ['like', sharedAnalysis.id],
     queryFn: async () => {
-      const user = await base44.auth.me();
+      const user = await base44.auth.me().catch(() => null);
+      if (!user) return null;
       const likes = await base44.entities.Like.filter({
         shared_analysis_id: sharedAnalysis.id,
         user_email: user.email
@@ -115,7 +116,7 @@ export default function CommunityCard({ sharedAnalysis, index }) {
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-white truncate">{sharedAnalysis.user_name}</p>
           <p className="text-xs text-slate-500">
-            {format(new Date(sharedAnalysis.created_date), "MMM d, yyyy 'at' h:mm a")}
+            {sharedAnalysis.created_date ? format(new Date(sharedAnalysis.created_date), "MMM d, yyyy 'at' h:mm a") : ''}
           </p>
         </div>
         <Badge className={cn("flex items-center gap-1.5", status.bg, status.color, "border-0")}>
