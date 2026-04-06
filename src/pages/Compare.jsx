@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GitCompare, Loader2, RotateCcw, Sparkles } from 'lucide-react';
+import { GitCompare, Loader2, RotateCcw, Sparkles, Upload, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ImageDropZone from '@/components/compare/ImageDropZone';
 import CompareReport from '@/components/compare/CompareReport';
+import HistoryCompare from '@/components/compare/HistoryCompare';
+import { cn } from '@/lib/utils';
 
 const COMPARE_SCHEMA = {
   type: "object",
@@ -85,6 +87,7 @@ NEXT STEPS: 3-5 prioritized, specific next actions the user should take to conti
 Be direct, technical, and specific. Reference what you actually see in the images.`;
 
 export default function Compare() {
+  const [mode, setMode] = useState('upload'); // 'upload' | 'history'
   const [printA, setPrintA] = useState(null);
   const [printB, setPrintB] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -149,7 +152,7 @@ Reference this printer's known characteristics when suggesting adjustments.`;
 
       <div className="relative z-10 max-w-lg mx-auto px-4 py-8 pb-28">
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-8">
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center">
               <GitCompare className="w-5 h-5 text-white" />
@@ -159,15 +162,41 @@ Reference this printer's known characteristics when suggesting adjustments.`;
               <p className="text-xs text-slate-500">AI-powered side-by-side analysis</p>
             </div>
           </div>
-          {(report || printA || printB) && (
+          {(report || printA || printB) && mode === 'upload' && (
             <button onClick={handleReset} className="text-slate-500 hover:text-slate-300 transition-colors">
               <RotateCcw className="w-5 h-5" />
             </button>
           )}
         </motion.div>
 
+        {/* Mode toggle */}
+        <div className="flex gap-1 bg-slate-800/60 border border-slate-700/50 rounded-xl p-1 mb-6">
+          {[
+            { id: 'upload', label: 'Upload Photos', icon: Upload },
+            { id: 'history', label: 'From History', icon: History },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setMode(id)}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-all",
+                mode === id
+                  ? "bg-gradient-to-r from-cyan-600 to-purple-600 text-white shadow"
+                  : "text-slate-400 hover:text-slate-200"
+              )}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
+        </div>
+
         <AnimatePresence mode="wait">
-          {isAnalyzing ? (
+          {mode === 'history' ? (
+            <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <HistoryCompare />
+            </motion.div>
+          ) : isAnalyzing ? (
             <motion.div
               key="loading"
               initial={{ opacity: 0 }}
