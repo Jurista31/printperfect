@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Printer, History, X, RefreshCw } from 'lucide-react';
+import { Printer, History, X, RefreshCw, LogIn } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
@@ -229,7 +229,13 @@ export default function Home() {
   const [multiAngleMode, setMultiAngleMode] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
+  const [isGuest, setIsGuest] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    base44.auth.isAuthenticated().then(authed => setIsGuest(!authed));
+  }, []);
 
   const { data: analyses = [], refetch } = useQuery({
     queryKey: ['analyses'],
@@ -474,6 +480,32 @@ The user has uploaded the original STL/3D model file alongside their print photo
             </SheetContent>
           </Sheet>
         </motion.header>
+
+        {/* Guest sign-in banner */}
+        <AnimatePresence>
+          {isGuest && !bannerDismissed && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex items-center gap-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl px-4 py-3 mb-6"
+            >
+              <LogIn className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+              <p className="text-sm text-slate-300 flex-1">
+                <button
+                  onClick={() => base44.auth.redirectToLogin()}
+                  className="text-cyan-400 font-semibold hover:underline"
+                >
+                  Sign in
+                </button>
+                {' '}to save your analyses, journal prints & track history.
+              </p>
+              <button onClick={() => setBannerDismissed(true)} className="text-slate-500 hover:text-slate-300 ml-1">
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Main Content */}
         <AnimatePresence mode="wait">
