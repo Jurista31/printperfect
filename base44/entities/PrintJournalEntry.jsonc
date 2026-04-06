@@ -1,0 +1,121 @@
+{
+  "name": "PrintJournalEntry",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Short title for the print (e.g. model name)"
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failure",
+        "partial"
+      ],
+      "default": "success",
+      "description": "Was the print successful?"
+    },
+    "print_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the print"
+    },
+    "analysis_id": {
+      "type": "string",
+      "description": "Optional reference to a PrintAnalysis record"
+    },
+    "printer_model": {
+      "type": "string",
+      "description": "Printer used"
+    },
+    "filament_brand": {
+      "type": "string",
+      "description": "Filament brand/name"
+    },
+    "filament_material": {
+      "type": "string",
+      "enum": [
+        "PLA",
+        "PETG",
+        "ABS",
+        "ASA",
+        "TPU",
+        "Nylon",
+        "Resin",
+        "Other"
+      ],
+      "description": "Material type"
+    },
+    "filament_color": {
+      "type": "string",
+      "description": "Filament color"
+    },
+    "nozzle_temp": {
+      "type": "number",
+      "description": "Nozzle temperature in \u00b0C"
+    },
+    "bed_temp": {
+      "type": "number",
+      "description": "Bed temperature in \u00b0C"
+    },
+    "print_speed": {
+      "type": "number",
+      "description": "Print speed in mm/s"
+    },
+    "layer_height": {
+      "type": "number",
+      "description": "Layer height in mm"
+    },
+    "infill_percent": {
+      "type": "number",
+      "description": "Infill percentage"
+    },
+    "ambient_temp": {
+      "type": "number",
+      "description": "Ambient room temperature in \u00b0C"
+    },
+    "ambient_humidity": {
+      "type": "number",
+      "description": "Ambient relative humidity %"
+    },
+    "duration_minutes": {
+      "type": "number",
+      "description": "Print duration in minutes"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form notes or observations"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Photo of the finished print"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "User-defined tags"
+    }
+  },
+  "required": [
+    "title",
+    "outcome",
+    "print_date"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import Chat from './pages/Chat';
+import PrintJournal from './pages/PrintJournal';
 import Compare from './pages/Compare';
 import History from './pages/History';
 import Community from './pages/Community';
@@ -61,6 +62,7 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "Chat": Chat,
+    "PrintJournal": PrintJournal,
     "Compare": Compare,
     "History": History,
     "Community": Community,
