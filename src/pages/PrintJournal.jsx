@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import JournalForm from '@/components/journal/JournalForm';
 import JournalTimeline from '@/components/journal/JournalTimeline';
 import JournalStats from '@/components/journal/JournalStats';
+import FailureSuggestions from '@/components/journal/FailureSuggestionCard';
 
 const TABS = [
   { id: 'timeline', label: 'Timeline', icon: CalendarDays },
@@ -114,6 +115,7 @@ export default function PrintJournal() {
           </motion.div>
         ) : entries.length > 0 && (
           <>
+            <FailureSuggestions />
             {/* Tab switcher */}
             <div className="flex gap-1 bg-slate-800/60 border border-slate-700/50 rounded-xl p-1 mb-5">
               {TABS.map(({ id, label, icon: Icon }) => (

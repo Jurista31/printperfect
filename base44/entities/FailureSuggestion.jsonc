@@ -1,0 +1,67 @@
+{
+  "name": "FailureSuggestion",
+  "type": "object",
+  "properties": {
+    "journal_entry_id": {
+      "type": "string",
+      "description": "Reference to the PrintJournalEntry that triggered this"
+    },
+    "print_title": {
+      "type": "string",
+      "description": "Cached title of the failed print"
+    },
+    "created_by_user": {
+      "type": "string",
+      "description": "Email of the user who owns this suggestion"
+    },
+    "summary": {
+      "type": "string",
+      "description": "One-sentence AI diagnosis"
+    },
+    "steps": {
+      "type": "array",
+      "description": "List of troubleshooting steps",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the user has viewed this suggestion"
+    },
+    "printer_model": {
+      "type": "string"
+    },
+    "filament_material": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "journal_entry_id",
+    "print_title"
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "created_by_user": "{{user.email}}"
+    },
+    "update": {
+      "created_by_user": "{{user.email}}"
+    },
+    "delete": {
+      "created_by_user": "{{user.email}}"
+    }
+  }
+}
