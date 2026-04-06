@@ -4,15 +4,27 @@ Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
 
   const body = await req.json();
-  const { event, data } = body;
+  const { event, data, automation } = body;
+
+  // Validate this request originates from a platform entity automation
+  if (!automation?.id || !event?.entity_id || event?.entity_name !== 'PrintJournalEntry') {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Fetch the journal entry directly from DB via service role — never trust payload data alone
+  const entries = await base44.asServiceRole.entities.PrintJournalEntry.filter({ id: event.entity_id });
+  const journalEntry = entries?.[0];
+
+  if (!journalEntry) {
+    return Response.json({ error: 'Journal entry not found' }, { status: 404 });
+  }
 
   // Only process failure outcomes
-  if (data?.outcome !== 'failure') {
+  if (journalEntry.outcome !== 'failure') {
     return Response.json({ skipped: true });
   }
 
-  const journalEntry = data;
-  const entryId = event?.entity_id;
+  const entryId = event.entity_id;
 
   // Gather context: linked PrintAnalysis if available
   let analysisDefects = [];
