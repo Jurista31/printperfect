@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Plus, BarChart2, CalendarDays, Loader2 } from 'lucide-react';
+import { BookOpen, Plus, BarChart2, CalendarDays, Loader2, GitCompare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 import JournalForm from '@/components/journal/JournalForm';
 import JournalTimeline from '@/components/journal/JournalTimeline';
 import JournalStats from '@/components/journal/JournalStats';
@@ -69,12 +70,20 @@ export default function PrintJournal() {
             </div>
           </div>
           {!showForm && (
-            <Button
-              onClick={() => { setEditingEntry(null); setShowForm(true); }}
-              className="bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 text-white h-9"
-            >
-              <Plus className="w-4 h-4 mr-1" /> Log Print
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link
+                to="/JournalCompare"
+                className="flex items-center gap-1 px-3 h-9 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-colors text-sm"
+              >
+                <GitCompare className="w-4 h-4" />
+              </Link>
+              <Button
+                onClick={() => { setEditingEntry(null); setShowForm(true); }}
+                className="bg-gradient-to-r from-teal-600 to-indigo-600 hover:from-teal-500 hover:to-indigo-500 text-white h-9"
+              >
+                <Plus className="w-4 h-4 mr-1" /> Log Print
+              </Button>
+            </div>
           )}
         </motion.div>
 
