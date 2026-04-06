@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, Users, Lightbulb, Wand2, Settings, TrendingUp, GitCompare, BookOpen } from 'lucide-react';
+import { Home, Users, Settings, TrendingUp, GitCompare, BookOpen, LayoutDashboard } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -52,8 +52,8 @@ export default function Layout({ children, currentPageName }) {
   
   const navItems = [
     { name: 'Analyze', icon: Home, page: 'Home' },
-    { name: 'Compare', icon: GitCompare, page: 'Compare' },
     { name: 'Journal', icon: BookOpen, page: 'PrintJournal' },
+    { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'History', icon: TrendingUp, page: 'History' },
     { name: 'Community', icon: Users, page: 'Community' },
   ];
