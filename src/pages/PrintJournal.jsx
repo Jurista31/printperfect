@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Plus, BarChart2, CalendarDays, Loader2, GitCompare } from 'lucide-react';
+import { BookOpen, Plus, BarChart2, CalendarDays, Loader2, GitCompare, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -72,8 +72,16 @@ export default function PrintJournal() {
           {!showForm && (
             <div className="flex items-center gap-2">
               <Link
+                to="/MaterialLibrary"
+                className="flex items-center gap-1 px-3 h-9 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-colors text-sm"
+                title="Material Library"
+              >
+                <Package className="w-4 h-4" />
+              </Link>
+              <Link
                 to="/JournalCompare"
                 className="flex items-center gap-1 px-3 h-9 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 transition-colors text-sm"
+                title="Compare Prints"
               >
                 <GitCompare className="w-4 h-4" />
               </Link>

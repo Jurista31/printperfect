@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { X, Check, Upload, Loader2 } from 'lucide-react';
+import { X, Check, Upload, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -70,7 +70,33 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
     queryFn: () => base44.entities.PrinterProfile.list('-created_date', 20),
   });
 
+  const { data: filamentProfiles = [] } = useQuery({
+    queryKey: ['filament-profiles-journal'],
+    queryFn: () => base44.entities.FilamentProfile.list('-created_date', 100),
+  });
+
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
+
+  const handleBrandChange = (brand) => {
+    set('filament_brand', brand);
+    // Find matching filament profile and auto-fill
+    const match = filamentProfiles.find(
+      fp => fp.brand.toLowerCase() === brand.toLowerCase() && fp.material === form.filament_material
+    ) || filamentProfiles.find(
+      fp => fp.brand.toLowerCase() === brand.toLowerCase()
+    );
+    if (match) {
+      setForm(f => ({
+        ...f,
+        filament_brand: brand,
+        filament_material: match.material || f.filament_material,
+        ...(match.nozzle_temp   && { nozzle_temp:   match.nozzle_temp }),
+        ...(match.bed_temp      && { bed_temp:       match.bed_temp }),
+        ...(match.print_speed   && { print_speed:    match.print_speed }),
+        ...(match.layer_height  && { layer_height:   match.layer_height }),
+      }));
+    }
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -199,7 +225,26 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
               </select>
             </Field>
             <Field label="Brand">
-              <Input value={form.filament_brand} onChange={e => set('filament_brand', e.target.value)} placeholder="e.g. Hatchbox" />
+              <div className="relative">
+                <Input
+                  list="filament-brands-list"
+                  value={form.filament_brand}
+                  onChange={e => handleBrandChange(e.target.value)}
+                  placeholder="e.g. Hatchbox"
+                />
+                {filamentProfiles.length > 0 && (
+                  <datalist id="filament-brands-list">
+                    {Array.from(new Set(filamentProfiles.map(fp => fp.brand))).map(b => (
+                      <option key={b} value={b} />
+                    ))}
+                  </datalist>
+                )}
+              </div>
+              {filamentProfiles.some(fp => fp.brand.toLowerCase() === form.filament_brand.toLowerCase()) && (
+                <p className="mt-1 flex items-center gap-1 text-xs text-cyan-400">
+                  <Sparkles className="w-3 h-3" /> Settings auto-filled from your library
+                </p>
+              )}
             </Field>
             <Field label="Color">
               <Input value={form.filament_color} onChange={e => set('filament_color', e.target.value)} placeholder="e.g. Black" />

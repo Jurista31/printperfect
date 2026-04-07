@@ -1,0 +1,72 @@
+{
+  "name": "FilamentProfile",
+  "type": "object",
+  "properties": {
+    "brand": {
+      "type": "string",
+      "description": "Filament brand name (e.g. Hatchbox, eSUN, Polymaker)"
+    },
+    "material": {
+      "type": "string",
+      "enum": [
+        "PLA",
+        "PETG",
+        "ABS",
+        "ASA",
+        "TPU",
+        "Nylon",
+        "Resin",
+        "Other"
+      ],
+      "description": "Material type"
+    },
+    "color": {
+      "type": "string",
+      "description": "Filament color"
+    },
+    "nozzle_temp": {
+      "type": "number",
+      "description": "Optimal nozzle temperature in \u00b0C"
+    },
+    "bed_temp": {
+      "type": "number",
+      "description": "Optimal bed temperature in \u00b0C"
+    },
+    "print_speed": {
+      "type": "number",
+      "description": "Optimal print speed in mm/s"
+    },
+    "layer_height": {
+      "type": "number",
+      "description": "Recommended layer height in mm"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Personal notes about this filament"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "User rating 1\u20135"
+    }
+  },
+  "required": [
+    "brand",
+    "material"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

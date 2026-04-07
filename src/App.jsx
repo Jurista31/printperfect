@@ -10,6 +10,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import JournalCompare from './pages/JournalCompare';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
+import MaterialLibrary from './pages/MaterialLibrary';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -64,6 +65,7 @@ const AuthenticatedApp = () => {
       <Route path="/JournalCompare" element={<LayoutWrapper currentPageName="JournalCompare"><JournalCompare /></LayoutWrapper>} />
       <Route path="/Dashboard" element={<LayoutWrapper currentPageName="Dashboard"><Dashboard /></LayoutWrapper>} />
       <Route path="/Analytics" element={<LayoutWrapper currentPageName="Analytics"><Analytics /></LayoutWrapper>} />
+      <Route path="/MaterialLibrary" element={<LayoutWrapper currentPageName="MaterialLibrary"><MaterialLibrary /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
