@@ -3,33 +3,92 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  RadialBarChart, RadialBar, Cell, CartesianGrid
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid
 } from 'recharts';
-import { BarChart3, Loader2, Package, Printer, Clock, AlertTriangle, TrendingUp, Award } from 'lucide-react';
+import {
+  BarChart3, Loader2, AlertTriangle, TrendingUp, Award, Clock,
+  Thermometer, Zap, Layers, Wind, Droplets
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import SettingsHeatmap from '@/components/analytics/SettingsHeatmap';
+import AmbientHeatmap from '@/components/analytics/AmbientHeatmap';
 
-const PALETTE = ['#22d3ee', '#818cf8', '#34d399', '#fb923c', '#f472b6', '#a78bfa', '#fbbf24', '#f87171'];
+// ─── helpers ─────────────────────────────────────────────────────────────────
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs shadow-lg">
-      <p className="text-slate-300 font-medium mb-1">{label}</p>
-      {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color || '#94a3b8' }}>
-          {p.name}: <span className="font-semibold">{p.value}{p.unit || ''}</span>
-        </p>
-      ))}
-    </div>
-  );
-};
+function bucket(value, edges) {
+  if (value == null || isNaN(value)) return null;
+  for (let i = 0; i < edges.length - 1; i++) {
+    if (value >= edges[i] && value < edges[i + 1]) return `${edges[i]}–${edges[i + 1]}`;
+  }
+  const last = edges[edges.length - 1];
+  if (value >= last) return `≥${last}`;
+  return `<${edges[0]}`;
+}
 
-function SectionCard({ title, dot, children }) {
+function bucketLabel(value, edges) {
+  return bucket(value, edges);
+}
+
+function buildCells(entries, xKey, xEdges, yKey, yEdges, outcomeKey = 'outcome') {
+  const map = {};
+  entries.forEach(e => {
+    const x = bucketLabel(e[xKey], xEdges);
+    const y = bucketLabel(e[yKey], yEdges);
+    if (!x || !y) return;
+    const k = `${x}||${y}`;
+    if (!map[k]) map[k] = { x, y, total: 0, failures: 0 };
+    map[k].total++;
+    if (e[outcomeKey] === 'failure') map[k].failures++;
+  });
+  return Object.values(map).map(c => ({
+    ...c,
+    failureRate: c.total ? Math.round((c.failures / c.total) * 100) : 0,
+  }));
+}
+
+function buildAmbientBuckets(entries, key, edges, unit = '') {
+  const map = {};
+  edges.forEach((e, i) => {
+    if (i < edges.length - 1) {
+      const label = `${e}–${edges[i + 1]}`;
+      map[label] = { label, total: 0, failures: 0 };
+    }
+  });
+  const lastLabel = `≥${edges[edges.length - 1]}`;
+  map[lastLabel] = { label: lastLabel, total: 0, failures: 0 };
+
+  entries.forEach(e => {
+    const v = e[key];
+    if (v == null || isNaN(v)) return;
+    let found = false;
+    for (let i = 0; i < edges.length - 1; i++) {
+      if (v >= edges[i] && v < edges[i + 1]) {
+        const label = `${edges[i]}–${edges[i + 1]}`;
+        map[label].total++;
+        if (e.outcome === 'failure') map[label].failures++;
+        found = true;
+        break;
+      }
+    }
+    if (!found && v >= edges[edges.length - 1]) {
+      map[lastLabel].total++;
+      if (e.outcome === 'failure') map[lastLabel].failures++;
+    }
+  });
+
+  return Object.values(map).map(b => ({
+    ...b,
+    failureRate: b.total ? Math.round((b.failures / b.total) * 100) : 0,
+  }));
+}
+
+// ─── shared UI ───────────────────────────────────────────────────────────────
+
+function SectionCard({ title, icon: Icon, iconColor, children }) {
   return (
     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-5 mb-5">
       <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-        <span className={cn("w-2 h-2 rounded-full inline-block", dot)} />
+        <Icon className={cn('w-4 h-4', iconColor)} />
         {title}
       </h2>
       {children}
@@ -37,97 +96,138 @@ function SectionCard({ title, dot, children }) {
   );
 }
 
-function RankRow({ rank, label, value, sub, color, barPct }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-xs text-slate-600 w-4 text-right flex-shrink-0">{rank}</span>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-slate-300 truncate">{label}</span>
-          <span className={cn("text-xs font-bold ml-2 flex-shrink-0", color)}>{value}</span>
-        </div>
-        <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all" style={{ width: `${barPct}%`, background: color?.includes('red') ? '#f87171' : color?.includes('amber') ? '#fbbf24' : color?.includes('green') ? '#34d399' : '#22d3ee' }} />
-        </div>
-        {sub && <p className="text-xs text-slate-600 mt-0.5">{sub}</p>}
-      </div>
-    </div>
-  );
-}
+const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient'];
+
+// ─── main page ───────────────────────────────────────────────────────────────
 
 export default function Analytics() {
+  const [tab, setTab] = useState('Heatmaps');
+
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ['journal-analytics'],
     queryFn: () => base44.entities.PrintJournalEntry.list('-print_date', 500),
   });
 
-  // --- Success rate per material ---
+  const failures = useMemo(() => entries.filter(e => e.outcome === 'failure'), [entries]);
+
+  // ── overall stats ──
+  const overall = useMemo(() => {
+    const total = entries.length;
+    if (!total) return null;
+    const success = entries.filter(e => e.outcome === 'success').length;
+    const failure = failures.length;
+    const withDur = entries.filter(e => e.duration_minutes);
+    const avgDur = withDur.length
+      ? Math.round(withDur.reduce((s, e) => s + e.duration_minutes, 0) / withDur.length)
+      : null;
+    return { total, success, failure, successRate: Math.round(success / total * 100), failureRate: Math.round(failure / total * 100), avgDur };
+  }, [entries, failures]);
+
+  // ── 2D heatmaps ──
+  // Nozzle temp vs Print speed
+  const nozzleVsSpeed = useMemo(() => buildCells(
+    entries,
+    'nozzle_temp', [170, 190, 200, 210, 220, 240, 260],
+    'print_speed', [20, 40, 60, 80, 100, 120]
+  ), [entries]);
+
+  // Bed temp vs Layer height
+  const bedVsLayer = useMemo(() => buildCells(
+    entries,
+    'bed_temp', [40, 50, 60, 70, 80, 90, 110],
+    'layer_height', [0.1, 0.15, 0.2, 0.25, 0.3, 0.4]
+  ), [entries]);
+
+  // Infill vs Speed
+  const infillVsSpeed = useMemo(() => buildCells(
+    entries,
+    'infill_percent', [10, 20, 30, 40, 60, 80, 100],
+    'print_speed', [20, 40, 60, 80, 100, 120]
+  ), [entries]);
+
+  // Nozzle temp vs layer height
+  const nozzleVsLayer = useMemo(() => buildCells(
+    entries,
+    'nozzle_temp', [170, 190, 200, 210, 220, 240, 260],
+    'layer_height', [0.1, 0.15, 0.2, 0.25, 0.3, 0.4]
+  ), [entries]);
+
+  // ── ambient ──
+  const ambientTempBuckets = useMemo(() =>
+    buildAmbientBuckets(entries, 'ambient_temp', [10, 15, 18, 21, 24, 27, 30, 35], '°C'),
+    [entries]);
+  const ambientHumidBuckets = useMemo(() =>
+    buildAmbientBuckets(entries, 'ambient_humidity', [20, 30, 40, 50, 60, 70, 80], '%'),
+    [entries]);
+
+  // ── per-material ──
   const materialStats = useMemo(() => {
     const byMat = {};
     entries.forEach(e => {
       const mat = e.filament_material || 'Unknown';
-      if (!byMat[mat]) byMat[mat] = { material: mat, total: 0, success: 0, failure: 0, partial: 0, durations: [] };
+      if (!byMat[mat]) byMat[mat] = { material: mat, total: 0, success: 0, failure: 0, partial: 0 };
       byMat[mat].total++;
       byMat[mat][e.outcome || 'partial']++;
-      if (e.duration_minutes) byMat[mat].durations.push(e.duration_minutes);
     });
     return Object.values(byMat)
-      .filter(m => m.total >= 1)
       .sort((a, b) => b.total - a.total)
       .map(m => ({
         ...m,
         successRate: Math.round((m.success / m.total) * 100),
         failureRate: Math.round((m.failure / m.total) * 100),
-        avgDuration: m.durations.length ? Math.round(m.durations.reduce((s, v) => s + v, 0) / m.durations.length) : null,
       }));
   }, [entries]);
 
-  // --- Success rate per printer ---
+  // ── per-printer ──
   const printerStats = useMemo(() => {
-    const byPrinter = {};
+    const byP = {};
     entries.forEach(e => {
       const p = e.printer_model || 'Unknown';
-      if (!byPrinter[p]) byPrinter[p] = { printer: p, total: 0, success: 0, failure: 0, partial: 0, durations: [] };
-      byPrinter[p].total++;
-      byPrinter[p][e.outcome || 'partial']++;
-      if (e.duration_minutes) byPrinter[p].durations.push(e.duration_minutes);
+      if (!byP[p]) byP[p] = { printer: p, total: 0, success: 0, failure: 0, partial: 0 };
+      byP[p].total++;
+      byP[p][e.outcome || 'partial']++;
     });
-    return Object.values(byPrinter)
-      .filter(p => p.total >= 1)
+    return Object.values(byP)
       .sort((a, b) => b.total - a.total)
       .map(p => ({
         ...p,
         successRate: Math.round((p.success / p.total) * 100),
         failureRate: Math.round((p.failure / p.total) * 100),
-        avgDuration: p.durations.length ? Math.round(p.durations.reduce((s, v) => s + v, 0) / p.durations.length) : null,
-        shortName: p.printer.length > 16 ? p.printer.slice(0, 16) + '…' : p.printer,
+        shortName: p.printer.length > 18 ? p.printer.slice(0, 18) + '…' : p.printer,
       }));
   }, [entries]);
 
-  // --- Overall stats ---
-  const overall = useMemo(() => {
-    const total = entries.length;
-    if (!total) return null;
-    const success = entries.filter(e => e.outcome === 'success').length;
-    const failure = entries.filter(e => e.outcome === 'failure').length;
-    const withDur = entries.filter(e => e.duration_minutes);
-    const avgDur = withDur.length ? Math.round(withDur.reduce((s, e) => s + e.duration_minutes, 0) / withDur.length) : null;
-    return { total, success, failure, partial: total - success - failure, successRate: Math.round(success / total * 100), failureRate: Math.round(failure / total * 100), avgDur };
-  }, [entries]);
+  // ── heatmap bucket arrays ──
+  const nozzleBuckets  = ['170–190','190–200','200–210','210–220','220–240','240–260','≥260'];
+  const speedBuckets   = ['20–40','40–60','60–80','80–100','100–120','≥120'];
+  const bedBuckets     = ['40–50','50–60','60–70','70–80','80–90','90–110','≥110'];
+  const layerBuckets   = ['0.1–0.15','0.15–0.2','0.2–0.25','0.25–0.3','0.3–0.4','≥0.4'];
+  const infillBuckets  = ['10–20','20–30','30–40','40–60','60–80','80–100','≥100'];
 
-  // --- Failure rate ranking (material + printer combined, highest failure first) ---
-  const failureRanking = useMemo(() => {
-    const combined = [
-      ...materialStats.filter(m => m.total >= 2).map(m => ({ label: m.material, failureRate: m.failureRate, total: m.total, type: 'material' })),
-      ...printerStats.filter(p => p.total >= 2).map(p => ({ label: p.printer, failureRate: p.failureRate, total: p.total, type: 'printer' })),
-    ];
-    return combined.sort((a, b) => b.failureRate - a.failureRate).slice(0, 6);
-  }, [materialStats, printerStats]);
+  // filter out empty rows/cols from the heatmaps
+  const usedBuckets = (cells, axis) => {
+    const used = new Set(cells.filter(c => c.total > 0).map(c => c[axis]));
+    return (axis === 'x' ? [...nozzleBuckets, ...speedBuckets, ...bedBuckets, ...layerBuckets, ...infillBuckets] : [])
+      .filter(b => used.has(b));
+  };
 
-  // --- Avg duration per material chart data ---
-  const durationByMaterial = useMemo(() =>
-    materialStats.filter(m => m.avgDuration).map(m => ({ material: m.material.length > 8 ? m.material : m.material, avgDuration: m.avgDuration })),
-    [materialStats]);
+  // helper: get sorted unique values present in cells
+  const activeBuckets = (cells, axis, allBuckets) =>
+    allBuckets.filter(b => cells.some(c => c[axis] === b && c.total > 0));
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs shadow-lg">
+        <p className="text-slate-300 font-medium mb-1">{label}</p>
+        {payload.map((p, i) => (
+          <p key={i} style={{ color: p.color || '#94a3b8' }}>
+            {p.name}: <span className="font-semibold">{p.value}{p.unit || ''}</span>
+          </p>
+        ))}
+      </div>
+    );
+  };
 
   if (isLoading) {
     return (
@@ -147,8 +247,6 @@ export default function Analytics() {
     );
   }
 
-  const maxFailRate = failureRanking[0]?.failureRate || 1;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -158,182 +256,252 @@ export default function Analytics() {
 
       <div className="relative z-10 max-w-lg mx-auto px-4 py-8 pb-28">
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="mb-7">
+        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center">
               <BarChart3 className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Print Analytics</h1>
-              <p className="text-xs text-slate-500">Performance by material & printer · {entries.length} prints</p>
+              <h1 className="text-xl font-bold text-white">Failure Analytics</h1>
+              <p className="text-xs text-slate-500">Settings heatmaps · {entries.length} prints · {failures.length} failures</p>
             </div>
           </div>
         </motion.div>
 
-        {/* Summary stat pills */}
+        {/* Stat pills */}
         {overall && (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-            className="grid grid-cols-2 gap-3 mb-6">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}
+            className="grid grid-cols-4 gap-2 mb-5">
             {[
-              { icon: Award, label: 'Overall Success Rate', value: `${overall.successRate}%`, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-              { icon: AlertTriangle, label: 'Overall Failure Rate', value: `${overall.failureRate}%`, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
-              { icon: Clock, label: 'Avg Duration', value: overall.avgDur ? `${overall.avgDur}m` : '—', color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
-              { icon: TrendingUp, label: 'Total Prints', value: overall.total, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
-            ].map(({ icon: Icon, label, value, color, bg }) => (
-              <div key={label} className={cn("rounded-xl border p-4", bg)}>
-                <div className="flex items-center gap-2 mb-1">
-                  <Icon className={cn("w-4 h-4", color)} />
-                  <span className="text-xs text-slate-400">{label}</span>
-                </div>
-                <p className={cn("text-2xl font-bold", color)}>{value}</p>
+              { label: 'Success', value: `${overall.successRate}%`, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
+              { label: 'Failure', value: `${overall.failureRate}%`, color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20' },
+              { label: 'Avg Dur', value: overall.avgDur ? `${overall.avgDur}m` : '—', color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
+              { label: 'Total', value: overall.total, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/20' },
+            ].map(({ label, value, color, bg }) => (
+              <div key={label} className={cn('rounded-xl border p-3 text-center', bg)}>
+                <p className={cn('text-lg font-bold', color)}>{value}</p>
+                <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
               </div>
             ))}
           </motion.div>
         )}
 
-        {/* Success rate by material */}
-        {materialStats.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <SectionCard title="Success Rate by Material" dot="bg-green-400">
-              <ResponsiveContainer width="100%" height={materialStats.length * 44 + 20}>
-                <BarChart data={materialStats} layout="vertical" barSize={16} margin={{ left: 0, right: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
-                  <YAxis dataKey="material" type="category" width={62} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} formatter={(v) => [`${v}%`, 'Success Rate']} />
-                  <Bar dataKey="successRate" name="Success Rate" radius={[0, 4, 4, 0]}>
-                    {materialStats.map((m, i) => (
-                      <Cell key={i} fill={m.successRate >= 70 ? '#34d399' : m.successRate >= 40 ? '#fbbf24' : '#f87171'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-              <div className="flex items-center gap-4 mt-3 flex-wrap">
-                {[['#34d399', '≥70% good'], ['#fbbf24', '40–69% fair'], ['#f87171', '<40% poor']].map(([c, l]) => (
-                  <span key={l} className="flex items-center gap-1 text-xs text-slate-400">
-                    <span className="w-2.5 h-2.5 rounded-sm" style={{ background: c }} />
-                    {l}
-                  </span>
-                ))}
-              </div>
-            </SectionCard>
-          </motion.div>
-        )}
-
-        {/* Success rate by printer */}
-        {printerStats.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-            <SectionCard title="Printer Reliability" dot="bg-cyan-400">
-              <ResponsiveContainer width="100%" height={printerStats.length * 44 + 20}>
-                <BarChart data={printerStats} layout="vertical" barSize={16} margin={{ left: 0, right: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
-                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
-                  <YAxis dataKey="shortName" type="category" width={80} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} formatter={(v) => [`${v}%`, 'Success Rate']} />
-                  <Bar dataKey="successRate" name="Success Rate" radius={[0, 4, 4, 0]}>
-                    {printerStats.map((p, i) => (
-                      <Cell key={i} fill={p.successRate >= 70 ? '#22d3ee' : p.successRate >= 40 ? '#fbbf24' : '#f87171'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-
-              {/* Avg duration per printer */}
-              {printerStats.some(p => p.avgDuration) && (
-                <div className="mt-4 space-y-2 pt-4 border-t border-slate-700/50">
-                  <p className="text-xs text-slate-500 font-medium mb-2">Avg Print Duration</p>
-                  {printerStats.filter(p => p.avgDuration).map((p, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 truncate flex-1">{p.printer}</span>
-                      <span className="text-cyan-300 font-semibold ml-3 flex-shrink-0">{p.avgDuration}m</span>
-                    </div>
-                  ))}
-                </div>
+        {/* Tab bar */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.06 }}
+          className="flex gap-1 bg-slate-800/60 border border-slate-700/50 rounded-xl p-1 mb-5 overflow-x-auto">
+          {TABS.map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={cn(
+                'flex-1 min-w-max py-2 px-3 rounded-lg text-xs font-medium transition-all whitespace-nowrap',
+                tab === t
+                  ? 'bg-gradient-to-r from-orange-600 to-pink-600 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-200'
               )}
-            </SectionCard>
-          </motion.div>
-        )}
+            >
+              {t}
+            </button>
+          ))}
+        </motion.div>
 
-        {/* Average duration by material */}
-        {durationByMaterial.length > 1 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <SectionCard title="Avg Duration by Material (min)" dot="bg-amber-400">
-              <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={durationByMaterial} barSize={28}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                  <XAxis dataKey="material" tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} formatter={(v) => [`${v} min`, 'Avg Duration']} />
-                  <Bar dataKey="avgDuration" name="Avg Duration" radius={[4, 4, 0, 0]}>
-                    {durationByMaterial.map((_, i) => (
-                      <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </SectionCard>
-          </motion.div>
-        )}
-
-        {/* Failure rate ranking */}
-        {failureRanking.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
-            <SectionCard title="Highest Failure Rates" dot="bg-red-400">
-              <div className="space-y-3">
-                {failureRanking.map((item, i) => (
-                  <RankRow
-                    key={i}
-                    rank={i + 1}
-                    label={item.label}
-                    value={`${item.failureRate}%`}
-                    sub={`${item.total} print${item.total > 1 ? 's' : ''} · ${item.type}`}
-                    color={item.failureRate >= 50 ? 'text-red-400' : item.failureRate >= 25 ? 'text-amber-400' : 'text-green-400'}
-                    barPct={Math.round((item.failureRate / maxFailRate) * 100)}
+        {/* ── HEATMAPS TAB ── */}
+        {tab === 'Heatmaps' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            {failures.length === 0 ? (
+              <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-8 text-center">
+                <Award className="w-10 h-10 text-green-400 mx-auto mb-3" />
+                <p className="text-white font-semibold">No failures logged!</p>
+                <p className="text-slate-500 text-xs mt-1">Log some failed prints to see failure heatmaps.</p>
+              </div>
+            ) : (
+              <>
+                <SectionCard title="Nozzle Temp × Print Speed failure rate" icon={Thermometer} iconColor="text-orange-400">
+                  <SettingsHeatmap
+                    xLabel="Nozzle Temp (°C)"
+                    yLabel="Speed (mm/s)"
+                    xBuckets={activeBuckets(nozzleVsSpeed, 'x', nozzleBuckets)}
+                    yBuckets={activeBuckets(nozzleVsSpeed, 'y', speedBuckets)}
+                    cells={nozzleVsSpeed}
                   />
-                ))}
-              </div>
-              {failureRanking.length > 0 && failureRanking[0].failureRate > 0 && (
-                <div className="mt-4 bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex gap-2">
-                  <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-200 leading-relaxed">
-                    <span className="font-semibold">{failureRanking[0].label}</span> has the highest failure rate at{' '}
-                    <span className="font-semibold">{failureRanking[0].failureRate}%</span>. Review its settings or consider switching equipment.
-                  </p>
-                </div>
-              )}
-            </SectionCard>
+                </SectionCard>
+
+                <SectionCard title="Bed Temp × Layer Height failure rate" icon={Layers} iconColor="text-indigo-400">
+                  <SettingsHeatmap
+                    xLabel="Bed Temp (°C)"
+                    yLabel="Layer (mm)"
+                    xBuckets={activeBuckets(bedVsLayer, 'x', bedBuckets)}
+                    yBuckets={activeBuckets(bedVsLayer, 'y', layerBuckets)}
+                    cells={bedVsLayer}
+                  />
+                </SectionCard>
+
+                <SectionCard title="Infill % × Print Speed failure rate" icon={Zap} iconColor="text-yellow-400">
+                  <SettingsHeatmap
+                    xLabel="Infill (%)"
+                    yLabel="Speed (mm/s)"
+                    xBuckets={activeBuckets(infillVsSpeed, 'x', infillBuckets)}
+                    yBuckets={activeBuckets(infillVsSpeed, 'y', speedBuckets)}
+                    cells={infillVsSpeed}
+                  />
+                </SectionCard>
+
+                <SectionCard title="Nozzle Temp × Layer Height failure rate" icon={Thermometer} iconColor="text-pink-400">
+                  <SettingsHeatmap
+                    xLabel="Nozzle Temp (°C)"
+                    yLabel="Layer (mm)"
+                    xBuckets={activeBuckets(nozzleVsLayer, 'x', nozzleBuckets)}
+                    yBuckets={activeBuckets(nozzleVsLayer, 'y', layerBuckets)}
+                    cells={nozzleVsLayer}
+                  />
+                </SectionCard>
+              </>
+            )}
           </motion.div>
         )}
 
-        {/* Material detail table */}
-        {materialStats.length > 0 && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <SectionCard title="Material Performance Breakdown" dot="bg-purple-400">
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-slate-500 border-b border-slate-700/50">
-                      <th className="text-left pb-2 font-medium">Material</th>
-                      <th className="text-center pb-2 font-medium">Total</th>
-                      <th className="text-center pb-2 font-medium text-green-400">✓</th>
-                      <th className="text-center pb-2 font-medium text-red-400">✗</th>
-                      <th className="text-right pb-2 font-medium">Avg Time</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-700/30">
-                    {materialStats.map((m, i) => (
-                      <tr key={i} className="text-slate-300">
-                        <td className="py-2 font-medium">{m.material}</td>
-                        <td className="py-2 text-center text-slate-400">{m.total}</td>
-                        <td className="py-2 text-center text-green-400 font-semibold">{m.success}</td>
-                        <td className="py-2 text-center text-red-400 font-semibold">{m.failure}</td>
-                        <td className="py-2 text-right text-slate-400">{m.avgDuration ? `${m.avgDuration}m` : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        {/* ── BY MATERIAL TAB ── */}
+        {tab === 'By Material' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            {materialStats.length === 0 ? (
+              <p className="text-slate-500 text-sm text-center py-12">No material data found.</p>
+            ) : (
+              <>
+                <SectionCard title="Success Rate by Material" icon={Award} iconColor="text-green-400">
+                  <ResponsiveContainer width="100%" height={materialStats.length * 44 + 20}>
+                    <BarChart data={materialStats} layout="vertical" barSize={16} margin={{ left: 0, right: 24 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+                      <XAxis type="number" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+                      <YAxis dataKey="material" type="category" width={64} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} formatter={v => [`${v}%`, 'Success']} />
+                      <Bar dataKey="successRate" name="Success Rate" radius={[0, 4, 4, 0]}>
+                        {materialStats.map((m, i) => (
+                          <Cell key={i} fill={m.successRate >= 70 ? '#34d399' : m.successRate >= 40 ? '#fbbf24' : '#f87171'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </SectionCard>
+
+                <SectionCard title="Material Performance Table" icon={AlertTriangle} iconColor="text-red-400">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-slate-500 border-b border-slate-700/50">
+                          <th className="text-left pb-2 font-medium">Material</th>
+                          <th className="text-center pb-2">Total</th>
+                          <th className="text-center pb-2 text-green-400">✓ OK</th>
+                          <th className="text-center pb-2 text-red-400">✗ Fail</th>
+                          <th className="text-right pb-2">Fail %</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-700/30">
+                        {materialStats.map((m, i) => (
+                          <tr key={i}>
+                            <td className="py-2 text-slate-300 font-medium">{m.material}</td>
+                            <td className="py-2 text-center text-slate-400">{m.total}</td>
+                            <td className="py-2 text-center text-green-400 font-semibold">{m.success}</td>
+                            <td className="py-2 text-center text-red-400 font-semibold">{m.failure}</td>
+                            <td className={cn('py-2 text-right font-bold', m.failureRate >= 40 ? 'text-red-400' : m.failureRate >= 20 ? 'text-amber-400' : 'text-green-400')}>
+                              {m.failureRate}%
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </SectionCard>
+              </>
+            )}
+          </motion.div>
+        )}
+
+        {/* ── BY PRINTER TAB ── */}
+        {tab === 'By Printer' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            {printerStats.length === 0 ? (
+              <p className="text-slate-500 text-sm text-center py-12">No printer data found.</p>
+            ) : (
+              <>
+                <SectionCard title="Printer Reliability" icon={TrendingUp} iconColor="text-cyan-400">
+                  <ResponsiveContainer width="100%" height={printerStats.length * 44 + 20}>
+                    <BarChart data={printerStats} layout="vertical" barSize={16} margin={{ left: 0, right: 24 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" horizontal={false} />
+                      <XAxis type="number" domain={[0, 100]} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${v}%`} />
+                      <YAxis dataKey="shortName" type="category" width={80} tick={{ fill: '#94a3b8', fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} formatter={v => [`${v}%`, 'Success']} />
+                      <Bar dataKey="successRate" name="Success Rate" radius={[0, 4, 4, 0]}>
+                        {printerStats.map((p, i) => (
+                          <Cell key={i} fill={p.successRate >= 70 ? '#22d3ee' : p.successRate >= 40 ? '#fbbf24' : '#f87171'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </SectionCard>
+
+                <SectionCard title="Printer Failure Table" icon={AlertTriangle} iconColor="text-red-400">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-slate-500 border-b border-slate-700/50">
+                          <th className="text-left pb-2 font-medium">Printer</th>
+                          <th className="text-center pb-2">Total</th>
+                          <th className="text-center pb-2 text-green-400">✓ OK</th>
+                          <th className="text-center pb-2 text-red-400">✗ Fail</th>
+                          <th className="text-right pb-2">Fail %</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-700/30">
+                        {printerStats.map((p, i) => (
+                          <tr key={i}>
+                            <td className="py-2 text-slate-300 font-medium truncate max-w-[120px]">{p.printer}</td>
+                            <td className="py-2 text-center text-slate-400">{p.total}</td>
+                            <td className="py-2 text-center text-green-400 font-semibold">{p.success}</td>
+                            <td className="py-2 text-center text-red-400 font-semibold">{p.failure}</td>
+                            <td className={cn('py-2 text-right font-bold', p.failureRate >= 40 ? 'text-red-400' : p.failureRate >= 20 ? 'text-amber-400' : 'text-green-400')}>
+                              {p.failureRate}%
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </SectionCard>
+              </>
+            )}
+          </motion.div>
+        )}
+
+        {/* ── AMBIENT TAB ── */}
+        {tab === 'Ambient' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            {!entries.some(e => e.ambient_temp || e.ambient_humidity) ? (
+              <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-8 text-center">
+                <Wind className="w-10 h-10 text-slate-600 mx-auto mb-3" />
+                <p className="text-white font-semibold">No ambient data logged</p>
+                <p className="text-slate-500 text-xs mt-1">Add ambient temperature and humidity when logging prints to see how conditions affect failure rates.</p>
               </div>
-            </SectionCard>
+            ) : (
+              <>
+                <SectionCard title="Ambient Temperature vs Failure Rate" icon={Thermometer} iconColor="text-orange-400">
+                  <AmbientHeatmap
+                    label="Room Temperature"
+                    buckets={ambientTempBuckets.filter(b => b.total > 0)}
+                    unit="°C"
+                  />
+                  <p className="text-xs text-slate-600 mt-3">Higher ambient temps can cause warping; too cold can cause layer adhesion issues.</p>
+                </SectionCard>
+
+                <SectionCard title="Humidity vs Failure Rate" icon={Droplets} iconColor="text-blue-400">
+                  <AmbientHeatmap
+                    label="Relative Humidity"
+                    buckets={ambientHumidBuckets.filter(b => b.total > 0)}
+                    unit="%"
+                  />
+                  <p className="text-xs text-slate-600 mt-3">Moisture-sensitive materials like Nylon and TPU are particularly affected by high humidity.</p>
+                </SectionCard>
+              </>
+            )}
           </motion.div>
         )}
       </div>
