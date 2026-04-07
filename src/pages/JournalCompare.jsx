@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { GitCompare, ChevronDown, CheckCircle2, XCircle, AlertCircle, Thermometer, Gauge, Layers, Package, Wind, Clock, Droplets, Percent } from 'lucide-react';
+import { GitCompare, ChevronDown, CheckCircle2, XCircle, AlertCircle, Thermometer, Gauge, Layers, Package, Wind, Clock, Droplets, Percent, Bug, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -163,6 +163,69 @@ function OutcomeHeader({ entry }) {
   );
 }
 
+const SEVERITY_CONFIG = {
+  high:   { color: 'text-red-400',    bg: 'bg-red-500/10 border-red-500/30' },
+  medium: { color: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/30' },
+  low:    { color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/30' },
+};
+
+function DefectColumn({ entry, analysis, loading }) {
+  if (!entry) return <div className="flex-1" />;
+
+  if (loading) return (
+    <div className="flex-1 bg-slate-800/30 border border-slate-700/30 rounded-xl p-3 flex items-center justify-center">
+      <div className="w-4 h-4 border-2 border-teal-400/30 border-t-teal-400 rounded-full animate-spin" />
+    </div>
+  );
+
+  const defects = analysis?.defects || [];
+  const quality = analysis?.overall_quality;
+  const oc = OUTCOME_CONFIG[entry.outcome] || OUTCOME_CONFIG.partial;
+  const OcIcon = oc.icon;
+
+  return (
+    <div className="flex-1 space-y-2">
+      {/* Quality badge */}
+      {quality && (
+        <div className="bg-slate-800/40 border border-slate-700/30 rounded-lg px-2.5 py-1.5 text-center">
+          <p className="text-xs text-slate-500">AI Quality</p>
+          <p className={cn("text-sm font-semibold capitalize", {
+            excellent: 'text-emerald-400',
+            good: 'text-cyan-400',
+            fair: 'text-amber-400',
+            poor: 'text-red-400',
+          }[quality] || 'text-slate-300')}>{quality}</p>
+        </div>
+      )}
+
+      {defects.length === 0 ? (
+        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-3 text-center">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
+          <p className="text-xs text-emerald-300">No defects</p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {defects.map((d, i) => {
+            const sev = SEVERITY_CONFIG[d.severity] || SEVERITY_CONFIG.low;
+            return (
+              <div key={i} className={cn("rounded-lg border px-2.5 py-2", sev.bg)}>
+                <p className={cn("text-xs font-semibold", sev.color)}>{d.name}</p>
+                <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{d.description}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {!analysis && entry.analysis_id == null && (
+        <div className="bg-slate-800/30 border border-slate-700/30 rounded-xl p-3 text-center">
+          <p className="text-xs text-slate-500">No analysis linked</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function JournalCompare() {
   const [selectedA, setSelectedA] = useState(null);
   const [selectedB, setSelectedB] = useState(null);
@@ -174,6 +237,21 @@ export default function JournalCompare() {
 
   const entryA = entries.find(e => e.id === selectedA) || null;
   const entryB = entries.find(e => e.id === selectedB) || null;
+
+  // Fetch linked analyses
+  const { data: analysisA, isFetching: loadingA } = useQuery({
+    queryKey: ['analysis', entryA?.analysis_id],
+    queryFn: () => base44.entities.PrintAnalysis.filter({ id: entryA.analysis_id }),
+    enabled: !!entryA?.analysis_id,
+    select: data => data?.[0] || null,
+  });
+
+  const { data: analysisB, isFetching: loadingB } = useQuery({
+    queryKey: ['analysis', entryB?.analysis_id],
+    queryFn: () => base44.entities.PrintAnalysis.filter({ id: entryB.analysis_id }),
+    enabled: !!entryB?.analysis_id,
+    select: data => data?.[0] || null,
+  });
 
   const changedCount = SETTINGS.filter(s => {
     const vA = entryA?.[s.key];
@@ -264,6 +342,44 @@ export default function JournalCompare() {
                 {changedCount === 0 && (
                   <div className="text-center py-4">
                     <p className="text-sm text-slate-500">All recorded settings are identical between these two prints.</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* Defect Comparison */}
+            {entryA && entryB && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bug className="w-4 h-4 text-red-400" />
+                  <p className="text-sm font-semibold text-white">Defect Comparison</p>
+                  {(analysisA || analysisB) && (
+                    <span className="text-xs text-slate-500">from linked AI analysis</span>
+                  )}
+                </div>
+
+                {/* Column headers */}
+                <div className="flex gap-2 mb-2">
+                  <div className="flex-1 text-center">
+                    <p className="text-xs font-semibold text-teal-400 truncate">{entryA.title}</p>
+                  </div>
+                  <div className="flex-1 text-center">
+                    <p className="text-xs font-semibold text-indigo-400 truncate">{entryB.title}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 items-start">
+                  <DefectColumn entry={entryA} analysis={analysisA} loading={loadingA} />
+                  <DefectColumn entry={entryB} analysis={analysisB} loading={loadingB} />
+                </div>
+
+                {/* Insight banner if one succeeded and one failed */}
+                {entryA.outcome !== entryB.outcome && (entryA.outcome === 'success' || entryB.outcome === 'success') && changedCount > 0 && (
+                  <div className="mt-3 bg-teal-500/10 border border-teal-500/20 rounded-xl p-3 flex gap-2">
+                    <ShieldAlert className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-teal-200 leading-relaxed">
+                      <span className="font-semibold">Insight:</span> These prints had different outcomes with {changedCount} changed setting{changedCount > 1 ? 's' : ''}. The highlighted differences above are likely the cause.
+                    </p>
                   </div>
                 )}
               </motion.div>
