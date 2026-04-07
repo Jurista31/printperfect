@@ -379,13 +379,18 @@ The user has uploaded the original STL/3D model file alongside their print photo
         total_images: files.length
       };
       
-      const savedAnalysis = await createAnalysisMutation.mutateAsync(analysisData);
-      setCurrentAnalysis({ 
-        ...analysisData, 
-        id: savedAnalysis.id, 
+      // Show results immediately — don't wait for DB save
+      setCurrentAnalysis({
+        ...analysisData,
+        id: null,
         created_date: new Date().toISOString(),
         all_image_urls: fileUrls
       });
+
+      // Save to DB in background, update id once saved
+      createAnalysisMutation.mutateAsync(analysisData).then(savedAnalysis => {
+        setCurrentAnalysis(prev => prev ? { ...prev, id: savedAnalysis.id } : prev);
+      }).catch(err => console.error('Failed to save analysis:', err));
     } catch (error) {
       console.error('Analysis failed:', error);
     } finally {
