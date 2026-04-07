@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import JournalCompare from './pages/JournalCompare';
 import Dashboard from './pages/Dashboard';
+import Analytics from './pages/Analytics';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -62,6 +63,7 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/JournalCompare" element={<LayoutWrapper currentPageName="JournalCompare"><JournalCompare /></LayoutWrapper>} />
       <Route path="/Dashboard" element={<LayoutWrapper currentPageName="Dashboard"><Dashboard /></LayoutWrapper>} />
+      <Route path="/Analytics" element={<LayoutWrapper currentPageName="Analytics"><Analytics /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
