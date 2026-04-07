@@ -12,6 +12,7 @@ import MaterialBreakdown from '@/components/dashboard/MaterialBreakdown';
 import PerformanceMetrics from '@/components/dashboard/PerformanceMetrics';
 import SuccessRateTrend from '@/components/dashboard/SuccessRateTrend';
 import HighRiskAlerts from '@/components/dashboard/HighRiskAlerts';
+import MaintenanceAlerts from '@/components/dashboard/MaintenanceAlerts';
 
 export default function Dashboard() {
   const { data: entries = [], isLoading } = useQuery({
@@ -131,6 +132,10 @@ export default function Dashboard() {
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
           <HighRiskAlerts entries={entries} />
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <MaintenanceAlerts entries={entries} />
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
