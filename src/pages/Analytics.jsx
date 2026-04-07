@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import SettingsHeatmap from '@/components/analytics/SettingsHeatmap';
 import AmbientHeatmap from '@/components/analytics/AmbientHeatmap';
 import PerformanceOverTime from '@/components/analytics/PerformanceOverTime';
+import FilamentCostTab from '@/components/analytics/FilamentCostTab';
 import { format, parseISO, startOfMonth } from 'date-fns';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -98,7 +99,7 @@ function SectionCard({ title, icon: Icon, iconColor, children }) {
   );
 }
 
-const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient'];
+const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient', 'Filament Cost'];
 
 // ─── main page ───────────────────────────────────────────────────────────────
 
@@ -529,6 +530,12 @@ export default function Analytics() {
                 </SectionCard>
               </>
             )}
+          </motion.div>
+        )}
+        {/* ── FILAMENT COST TAB ── */}
+        {tab === 'Filament Cost' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <FilamentCostTab entries={entries} />
           </motion.div>
         )}
       </div>
