@@ -36,6 +36,13 @@
         }
       }
     },
+    "completed_steps": {
+      "type": "array",
+      "description": "Indices of steps the user has checked off",
+      "items": {
+        "type": "number"
+      }
+    },
     "is_read": {
       "type": "boolean",
       "default": false,
