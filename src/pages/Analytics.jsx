@@ -12,6 +12,8 @@ import {
 import { cn } from '@/lib/utils';
 import SettingsHeatmap from '@/components/analytics/SettingsHeatmap';
 import AmbientHeatmap from '@/components/analytics/AmbientHeatmap';
+import PerformanceOverTime from '@/components/analytics/PerformanceOverTime';
+import { format, parseISO, startOfMonth } from 'date-fns';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -160,6 +162,26 @@ export default function Analytics() {
     buildAmbientBuckets(entries, 'ambient_humidity', [20, 30, 40, 50, 60, 70, 80], '%'),
     [entries]);
 
+  // ── performance over time ──
+  const performanceOverTime = useMemo(() => {
+    const byMonth = {};
+    entries.forEach(e => {
+      if (!e.print_date) return;
+      const month = format(startOfMonth(parseISO(e.print_date)), 'MMM yy');
+      if (!byMonth[month]) byMonth[month] = { month, total: 0, success: 0, durations: [] };
+      byMonth[month].total++;
+      if (e.outcome === 'success') byMonth[month].success++;
+      if (e.duration_minutes) byMonth[month].durations.push(e.duration_minutes);
+    });
+    return Object.values(byMonth).map(m => ({
+      month: m.month,
+      successRate: Math.round((m.success / m.total) * 100),
+      avgDuration: m.durations.length
+        ? Math.round(m.durations.reduce((s, v) => s + v, 0) / m.durations.length)
+        : null,
+    })).filter(m => m.avgDuration !== null);
+  }, [entries]);
+
   // ── per-material ──
   const materialStats = useMemo(() => {
     const byMat = {};
@@ -285,6 +307,11 @@ export default function Analytics() {
             ))}
           </motion.div>
         )}
+
+        {/* Performance over time — always visible */}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }}>
+          <PerformanceOverTime data={performanceOverTime} />
+        </motion.div>
 
         {/* Tab bar */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.06 }}
