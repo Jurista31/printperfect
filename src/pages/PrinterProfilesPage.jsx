@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Printer } from 'lucide-react';
 import PrinterProfiles from '@/components/PrinterProfiles';
+import PrinterHoursTracker from '@/components/PrinterHoursTracker';
 
 export default function PrinterProfilesPage() {
   return (
@@ -25,6 +26,11 @@ export default function PrinterProfilesPage() {
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
           className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
           <PrinterProfiles />
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+          <PrinterHoursTracker />
         </motion.div>
       </div>
     </div>
