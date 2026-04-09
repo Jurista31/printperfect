@@ -9,7 +9,10 @@ Deno.serve(async (req) => {
   // Verify shared secret when configured — set AUTOMATION_SECRET env var and
   // set the same value as function_args.secret on the automation to enable this.
   const expectedSecret = Deno.env.get('AUTOMATION_SECRET');
-  if (expectedSecret && args?.secret !== expectedSecret) {
+  if (!expectedSecret) {
+    return Response.json({ error: 'Server misconfiguration: AUTOMATION_SECRET is not set' }, { status: 500 });
+  }
+  if (args?.secret !== expectedSecret) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
