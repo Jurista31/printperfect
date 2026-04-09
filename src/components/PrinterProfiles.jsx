@@ -19,6 +19,7 @@ const COMMON_PRINTERS = [
 
 const emptyForm = {
   name: '', printer_model: '', nozzle_size: '0.4mm',
+  firmware_version: '',
   common_materials: ['PLA'], default_material: 'PLA',
   default_nozzle_temp: '', default_bed_temp: '',
   default_print_speed: '', default_layer_height: '', notes: ''
@@ -131,6 +132,17 @@ function ProfileForm({ initial = emptyForm, onSave, onCancel, saving }) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Firmware version */}
+      <div>
+        <label className="text-xs font-medium text-slate-400 mb-1.5 block">Firmware Version</label>
+        <Input
+          value={form.firmware_version}
+          onChange={(e) => setForm(p => ({ ...p, firmware_version: e.target.value }))}
+          placeholder="e.g. Marlin 2.1, Klipper, Bambu, PrusaFirmware"
+          className="bg-slate-800 border-slate-700 text-white"
+        />
       </div>
 
       {/* Advanced settings toggle */}
@@ -320,6 +332,7 @@ export default function PrinterProfiles() {
                     initial={{
                       name: profile.name, printer_model: profile.printer_model,
                       nozzle_size: profile.nozzle_size || '0.4mm',
+                      firmware_version: profile.firmware_version || '',
                       common_materials: profile.common_materials || ['PLA'],
                       default_material: profile.default_material || 'PLA',
                       default_nozzle_temp: profile.default_nozzle_temp || '',
@@ -354,6 +367,8 @@ export default function PrinterProfiles() {
                         <Printer className="w-3 h-3" />{profile.printer_model}
                         {profile.nozzle_size && <span className="text-slate-600">•</span>}
                         {profile.nozzle_size && <span>Nozzle {profile.nozzle_size}</span>}
+                        {profile.firmware_version && <span className="text-slate-600">•</span>}
+                        {profile.firmware_version && <span>{profile.firmware_version}</span>}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {(profile.common_materials || []).map(mat => (

@@ -14,6 +14,10 @@
       "type": "string",
       "description": "Default nozzle diameter (e.g. 0.4mm)"
     },
+    "firmware_version": {
+      "type": "string",
+      "description": "Firmware version or type (e.g. Marlin 2.1, Klipper, Bambu, PrusaFirmware)"
+    },
     "common_materials": {
       "type": "array",
       "items": {
@@ -60,13 +64,40 @@
       "created_by": "{{user.email}}"
     },
     "read": {
-      "created_by": "{{user.email}}"
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "update": {
-      "created_by": "{{user.email}}"
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "delete": {
-      "created_by": "{{user.email}}"
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     }
   }
 }

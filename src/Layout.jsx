@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, Users, Settings, TrendingUp, GitCompare, BookOpen, LayoutDashboard, BarChart3, Lightbulb, FileCode } from 'lucide-react';
+import { Home, Users, Settings, TrendingUp, GitCompare, BookOpen, LayoutDashboard, BarChart3, Lightbulb, FileCode, Printer } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -57,6 +57,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Tips', icon: Lightbulb, page: 'Tips' },
     { name: 'Community', icon: Users, page: 'Community' },
     { name: 'G-Code', icon: FileCode, page: 'GCodeAnalyzer' },
+    { name: 'Printers', icon: Printer, page: 'PrinterProfiles' },
   ];
 
   const handleTabClick = (page) => {
