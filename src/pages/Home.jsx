@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import CameraCapture from '@/components/CameraCapture';
+import { getStoredAISettings } from '@/hooks/useAISettings';
 import AnalysisResults from '@/components/AnalysisResults';
 import AnalysisHistory from '@/components/AnalysisHistory';
 import LoadingAnalysis from '@/components/LoadingAnalysis';
@@ -291,6 +292,8 @@ export default function Home() {
     try {
       const files = Array.isArray(filesOrFile) ? filesOrFile : [filesOrFile];
       
+      const aiSettings = getStoredAISettings();
+
       // Upload images AND fetch context in parallel
       let learnedSection = '';
       let printerProfileSection = '';
@@ -335,8 +338,40 @@ IMPORTANT: Tailor ALL defect causes, solutions, and printer settings suggestions
         console.error('Failed to fetch context:', error);
       }
       
+      // Build settings modifiers
+      let settingsModifier = '';
+      if (aiSettings.analysisDepth === 'quick') {
+        settingsModifier += '\n\n**ANALYSIS MODE: QUICK SCAN** — Identify only the top 3 most critical defects. Keep descriptions brief. Skip minor issues.';
+      } else if (aiSettings.analysisDepth === 'deep') {
+        settingsModifier += '\n\n**ANALYSIS MODE: DEEP DIVE** — Be exhaustive. Report every defect, no matter how minor. Provide maximum detail in causes and solutions. Include material-specific insights.';
+      }
+      if (aiSettings.imageQualityThreshold === 'high') {
+        settingsModifier += '\n\n**CONFIDENCE FILTER: HIGH** — Only report defects you are 90%+ confident about. Skip anything ambiguous.';
+      } else if (aiSettings.imageQualityThreshold === 'low') {
+        settingsModifier += '\n\n**CONFIDENCE FILTER: LOW** — Report all suspected defects even at 50% confidence. Flag uncertain ones.';
+      }
+      if (aiSettings.defectToleranceLevel === 'strict') {
+        settingsModifier += '\n\n**TOLERANCE: STRICT** — Flag even minor surface imperfections, slight layer inconsistencies, and small cosmetic issues.';
+      } else if (aiSettings.defectToleranceLevel === 'lenient') {
+        settingsModifier += '\n\n**TOLERANCE: LENIENT** — Overlook minor cosmetic issues. Only flag defects that meaningfully impact function or structural integrity.';
+      }
+      if (aiSettings.minDefectSeverity === 'high') {
+        settingsModifier += '\n\n**SEVERITY FILTER** — Only report HIGH severity defects. Omit medium and low severity findings.';
+      } else if (aiSettings.minDefectSeverity === 'medium') {
+        settingsModifier += '\n\n**SEVERITY FILTER** — Only report MEDIUM and HIGH severity defects. Omit low severity findings.';
+      }
+      if (!aiSettings.includeCommunityComparison) {
+        settingsModifier += '\n\n**SKIP: community_comparison** — Do not populate the community_comparison field.';
+      }
+      if (!aiSettings.includePredictiveAnalysis) {
+        settingsModifier += '\n\n**SKIP: predictive_analysis** — Do not populate predictive_analysis. Return empty arrays.';
+      }
+      if (!aiSettings.includeAdvancedTroubleshooting) {
+        settingsModifier += '\n\n**SKIP: advanced_troubleshooting** — Do not populate advanced_troubleshooting. Return empty arrays.';
+      }
+
       // Enhanced prompt with multi-angle + learned patterns + printer profile
-      let enhancedPrompt = ANALYSIS_PROMPT;
+      let enhancedPrompt = ANALYSIS_PROMPT + settingsModifier;
       
       if (printerProfileSection) {
         enhancedPrompt = enhancedPrompt + printerProfileSection;

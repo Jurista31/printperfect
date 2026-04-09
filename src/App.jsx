@@ -13,6 +13,7 @@ import Analytics from './pages/Analytics';
 import MaterialLibrary from './pages/MaterialLibrary';
 import GCodeAnalyzer from './pages/GCodeAnalyzer';
 import PrinterProfilesPage from './pages/PrinterProfilesPage';
+import AdvancedSettings from './pages/AdvancedSettings';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -70,6 +71,7 @@ const AuthenticatedApp = () => {
       <Route path="/MaterialLibrary" element={<LayoutWrapper currentPageName="MaterialLibrary"><MaterialLibrary /></LayoutWrapper>} />
       <Route path="/GCodeAnalyzer" element={<LayoutWrapper currentPageName="GCodeAnalyzer"><GCodeAnalyzer /></LayoutWrapper>} />
       <Route path="/PrinterProfiles" element={<LayoutWrapper currentPageName="PrinterProfiles"><PrinterProfilesPage /></LayoutWrapper>} />
+      <Route path="/AdvancedSettings" element={<LayoutWrapper currentPageName="AdvancedSettings"><AdvancedSettings /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

@@ -5,7 +5,12 @@ Deno.serve(async (req) => {
   const user = await base44.auth.me();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { gcode, filename } = await req.json();
+  const { gcode, filename, settings = {} } = await req.json();
+  const depth = settings.depth || 'standard';
+  const checkTravelMoves = settings.checkTravelMoves !== false;
+  const checkLayerHeight = settings.checkLayerHeight !== false;
+  const checkTemperature = settings.checkTemperature !== false;
+  const optimizeSettings = settings.optimizeSettings !== false;
   if (!gcode) return Response.json({ error: 'No G-code provided' }, { status: 400 });
 
   // Fetch user's active printer profile for tailored suggestions
@@ -47,14 +52,22 @@ Deno.serve(async (req) => {
     if (l.startsWith('G1') && l.includes('E-')) retractCount++;
   }
 
+  const depthInstruction = depth === 'quick'
+    ? 'QUICK SCAN MODE: Identify only the top 3 most critical issues. Keep suggestions brief.'
+    : depth === 'deep'
+    ? 'DEEP DIVE MODE: Be exhaustive. Check every aspect in detail. Report all issues no matter how minor.'
+    : 'STANDARD MODE: Balanced analysis covering key issues and suggestions.';
+
+  const checksInstruction = [
+    !checkTravelMoves && 'SKIP travel move analysis.',
+    !checkLayerHeight && 'SKIP layer height consistency checks.',
+    !checkTemperature && 'SKIP temperature command analysis.',
+    !optimizeSettings && 'SKIP optimized settings suggestions (return empty array).',
+  ].filter(Boolean).join(' ');
+
   const prompt = `You are an expert FDM 3D printing engineer. Analyze the following G-code file (${filename || 'unknown'}) and provide a detailed assessment.
 
-Pre-parsed metrics:
-- Detected layer changes: ~${layerCount}
-- Nozzle temp commands: ${nozzleTemp ? nozzleTemp + '°C' : 'not found'}
-- Bed temp commands: ${bedTemp ? bedTemp + '°C' : 'not found'}
-- Travel moves (G0): ${travelMoves}
-- Retraction events: ${retractCount}
+${depthInstruction}${checksInstruction ? '\n' + checksInstruction : ''}
 
 G-code content:
 \`\`\`

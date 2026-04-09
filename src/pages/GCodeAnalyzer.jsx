@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { getStoredAISettings } from '@/hooks/useAISettings';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, FileCode, Loader2, AlertTriangle, CheckCircle2, Clock,
@@ -80,9 +81,19 @@ export default function GCodeAnalyzer() {
     setError(null);
     try {
       const text = await file.text();
-      // Send only first 8000 chars to stay within token limits while preserving key sections
       const preview = text.length > 8000 ? text.slice(0, 4000) + '\n...[truncated]...\n' + text.slice(-2000) : text;
-      const res = await base44.functions.invoke('analyzeGCode', { gcode: preview, filename: file.name });
+      const aiSettings = getStoredAISettings();
+      const res = await base44.functions.invoke('analyzeGCode', {
+        gcode: preview,
+        filename: file.name,
+        settings: {
+          depth: aiSettings.gcodeAnalysisDepth,
+          checkTravelMoves: aiSettings.gcodeCheckTravelMoves,
+          checkLayerHeight: aiSettings.gcodeCheckLayerHeight,
+          checkTemperature: aiSettings.gcodeCheckTemperature,
+          optimizeSettings: aiSettings.gcodeOptimizeSettings,
+        }
+      });
       setResult(res.data);
     } catch (e) {
       setError(e.message || 'Analysis failed');

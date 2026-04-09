@@ -13,7 +13,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, User, Mail, Shield, Loader2 } from 'lucide-react';
+import { Trash2, User, Mail, Shield, Loader2, Settings2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from "sonner";
 import PrinterProfiles from './PrinterProfiles';
 import MaintenanceLogs from './MaintenanceLogs';
@@ -98,6 +99,16 @@ export default function AccountSettings({ onClose }) {
       {/* Account Actions */}
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-slate-400 px-1">Account Actions</h4>
+
+        <Link to="/AdvancedSettings" onClick={onClose}>
+          <Button
+            variant="outline"
+            className="w-full justify-start text-slate-300 border-slate-700 hover:bg-slate-800 mb-0"
+          >
+            <Settings2 className="w-4 h-4 mr-2 text-violet-400" />
+            Advanced AI Settings
+          </Button>
+        </Link>
         
         <Button
           variant="outline"
