@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Plus, BarChart2, CalendarDays, Loader2, GitCompare, Package } from 'lucide-react';
+import { BookOpen, Plus, BarChart2, CalendarDays, Loader2, GitCompare, Package, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -11,10 +11,12 @@ import JournalTimeline from '@/components/journal/JournalTimeline';
 import JournalStats from '@/components/journal/JournalStats';
 import FailureSuggestions from '@/components/journal/FailureSuggestionCard';
 import JournalSearch, { EMPTY_FILTERS, applyFilters } from '@/components/journal/JournalSearch';
+import FailureAIAnalyzer from '@/components/journal/FailureAIAnalyzer';
 
 const TABS = [
   { id: 'timeline', label: 'Timeline', icon: CalendarDays },
   { id: 'stats', label: 'Stats', icon: BarChart2 },
+  { id: 'ai', label: 'AI Diagnose', icon: Brain },
 ];
 
 export default function PrintJournal() {
@@ -162,9 +164,13 @@ export default function PrintJournal() {
                   <JournalSearch filters={filters} onChange={setFilters} totalCount={entries.length} filteredCount={filteredEntries.length} />
                   <JournalTimeline entries={filteredEntries} onEdit={handleEdit} onDelete={handleDelete} />
                 </motion.div>
-              ) : (
+              ) : tab === 'stats' ? (
                 <motion.div key="stats" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                   <JournalStats entries={entries} />
+                </motion.div>
+              ) : (
+                <motion.div key="ai" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <FailureAIAnalyzer entries={entries} />
                 </motion.div>
               )}
             </AnimatePresence>
