@@ -73,16 +73,33 @@ Deno.serve(async (req) => {
     journalEntry.notes && `Notes: ${journalEntry.notes}`,
   ].filter(Boolean).join('\n');
 
+  // Pull defect solutions/causes from the linked analysis for richer context
+  const defectDetails = analysisDefects.length > 0
+    ? analysisDefects.map(d =>
+        `- [${d.severity?.toUpperCase()}] ${d.name}: ${d.description}\n  Root causes: ${(d.causes || []).slice(0, 3).join('; ')}\n  Known fixes: ${(d.solutions || []).slice(0, 3).join('; ')}`
+      ).join('\n')
+    : recentDefects.length > 0
+    ? [...new Set(recentDefects.map(d => d.name))].slice(0, 5).map(n => `- ${n}`).join('\n')
+    : 'No specific defect data available.';
+
   const prompt = `You are an expert FDM 3D printing troubleshooter. A user has marked a print as FAILED.
 
-Print settings:
+=== PRINT SETTINGS ===
 ${printContext || 'Not provided'}
 
-${defectContext}
+=== DETECTED DEFECTS (from linked AI analysis) ===
+${defectDetails}
 
-Generate a concise, actionable list of troubleshooting steps specifically tailored to this failure. 
-Focus on the most likely root causes given the settings and defects above.
-Return 4-6 steps, each with a short title and a 1-sentence explanation.`;
+Generate 4-6 highly specific, actionable troubleshooting steps tailored to these exact defects and settings.
+
+For EACH step:
+- Reference the specific defect it addresses (if applicable)
+- Specify which JournalForm setting field to adjust: one of [nozzle_temp, bed_temp, print_speed, layer_height, infill_percent, ambient_temp, ambient_humidity, filament_brand, filament_material, notes]
+- Specify a material property to investigate if relevant (e.g. "moisture content", "glass transition temp", "print temp range")
+- Give the recommended change direction and magnitude (e.g. "increase nozzle_temp by 5-10°C")
+- Assign a priority: critical | important | minor
+
+Return a one-sentence diagnosis summary and the step list.`;
 
   const result = await base44.asServiceRole.integrations.Core.InvokeLLM({
     prompt,
@@ -97,7 +114,12 @@ Return 4-6 steps, each with a short title and a 1-sentence explanation.`;
             properties: {
               title: { type: 'string' },
               detail: { type: 'string' },
-              category: { type: 'string', enum: ['temperature', 'adhesion', 'speed', 'hardware', 'material', 'calibration', 'environment'] }
+              category: { type: 'string', enum: ['temperature', 'adhesion', 'speed', 'hardware', 'material', 'calibration', 'environment'] },
+              defect_link: { type: 'string', description: 'Name of the specific defect this step addresses' },
+              setting_to_adjust: { type: 'string', description: 'JournalForm field name to adjust' },
+              setting_change: { type: 'string', description: 'Human-readable recommended change, e.g. +5-10°C' },
+              material_property: { type: 'string', description: 'Material property to investigate if relevant' },
+              priority: { type: 'string', enum: ['critical', 'important', 'minor'] }
             }
           }
         }

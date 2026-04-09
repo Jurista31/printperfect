@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle, Thermometer, Layers, Gauge, Wrench, Package, Sliders, Wind,
-  X, CheckCircle2, Circle, ChevronRight, Loader2
+  X, CheckCircle2, Circle, ChevronRight, Loader2, Link2, FlaskConical, ArrowRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -138,15 +138,51 @@ function TroubleshootingModal({ suggestion, onClose, onMarkRead }) {
                   }
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                     <Icon className={cn("w-3.5 h-3.5 flex-shrink-0", done ? "text-teal-400" : cfg.color)} />
                     <p className={cn("text-xs font-semibold", done ? "line-through text-slate-500" : "text-white")}>
                       {step.title}
                     </p>
+                    {step.priority === 'critical' && !done && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">CRITICAL</span>
+                    )}
                   </div>
+
+                  {/* Defect link */}
+                  {step.defect_link && (
+                    <div className="flex items-center gap-1 mt-1 mb-1">
+                      <Link2 className="w-3 h-3 text-slate-500 flex-shrink-0" />
+                      <span className="text-[11px] text-slate-500">Addresses: </span>
+                      <span className="text-[11px] font-medium text-orange-400">{step.defect_link}</span>
+                    </div>
+                  )}
+
                   <p className={cn("text-xs leading-relaxed", done ? "text-slate-600" : "text-slate-400")}>
                     {step.detail}
                   </p>
+
+                  {/* Settings hint */}
+                  {(step.setting_to_adjust || step.setting_change) && (
+                    <div className={cn("mt-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs border",
+                      done ? 'bg-slate-800/30 border-slate-700/30 text-slate-600' : 'bg-cyan-500/10 border-cyan-500/20 text-cyan-300'
+                    )}>
+                      <Sliders className="w-3 h-3 flex-shrink-0" />
+                      <span className="font-mono font-semibold">{step.setting_to_adjust}</span>
+                      {step.setting_change && (
+                        <><ArrowRight className="w-3 h-3 text-slate-500" /><span>{step.setting_change}</span></>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Material property */}
+                  {step.material_property && (
+                    <div className={cn("mt-1.5 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs border",
+                      done ? 'bg-slate-800/30 border-slate-700/30 text-slate-600' : 'bg-purple-500/10 border-purple-500/20 text-purple-300'
+                    )}>
+                      <FlaskConical className="w-3 h-3 flex-shrink-0" />
+                      <span>Investigate: <span className="font-semibold">{step.material_property}</span></span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-shrink-0 self-center">
                   <span className={cn(
