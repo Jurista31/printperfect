@@ -20,6 +20,7 @@ import MaterialAdvisorPanel from '@/components/analytics/MaterialAdvisorPanel';
 import PrintQualityAnalyzer from '@/components/analytics/PrintQualityAnalyzer';
 import FailureTrendsPanel from '@/components/analytics/FailureTrendsPanel';
 import EnergyMonitoringPanel from '@/components/analytics/EnergyMonitoringPanel';
+import FilamentRecommendationPanel from '@/components/analytics/FilamentRecommendationPanel';
 import { format, parseISO, startOfMonth } from 'date-fns';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -105,7 +106,7 @@ function SectionCard({ title, icon: Icon, iconColor, children }) {
   );
 }
 
-const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient', 'Filament Cost', 'AI Insights', 'Predict', 'Advisor', 'Visual QA', 'Trends', 'Energy'];
+const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient', 'Filament Cost', 'AI Insights', 'Predict', 'Advisor', 'Visual QA', 'Trends', 'Energy', 'Filament AI'];
 
 // ─── main page ───────────────────────────────────────────────────────────────
 
@@ -584,6 +585,13 @@ export default function Analytics() {
         {tab === 'Energy' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <EnergyMonitoringPanel entries={entries} />
+          </motion.div>
+        )}
+
+        {/* ── FILAMENT AI TAB ── */}
+        {tab === 'Filament AI' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <FilamentRecommendationPanel entries={entries} />
           </motion.div>
         )}
       </div>
