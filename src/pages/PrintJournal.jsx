@@ -24,12 +24,12 @@ export default function PrintJournal() {
   const [editingEntry, setEditingEntry] = useState(null);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
 
-  const filteredEntries = useMemo(() => applyFilters(entries, filters), [entries, filters]);
-
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ['print-journal'],
     queryFn: () => base44.entities.PrintJournalEntry.list('-print_date', 200),
   });
+
+  const filteredEntries = useMemo(() => applyFilters(entries, filters), [entries, filters]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['print-journal'] });
 
