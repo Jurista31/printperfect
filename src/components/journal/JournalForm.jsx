@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
+import SettingsRiskWarning from './SettingsRiskWarning';
 import { motion } from 'framer-motion';
 import { X, Check, Upload, Loader2, Sparkles, Video, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -57,6 +58,7 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
   });
 
   const [saving, setSaving] = useState(false);
+  const [showRiskCheck, setShowRiskCheck] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [autoTagging, setAutoTagging] = useState(false);
@@ -75,6 +77,11 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
   const { data: filamentProfiles = [] } = useQuery({
     queryKey: ['filament-profiles-journal'],
     queryFn: () => base44.entities.FilamentProfile.list('-created_date', 100),
+  });
+
+  const { data: allJournalEntries = [] } = useQuery({
+    queryKey: ['print-journal'],
+    queryFn: () => base44.entities.PrintJournalEntry.list('-print_date', 200),
   });
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
@@ -405,8 +412,26 @@ Return only a JSON array of tag strings. Focus on outcome, material, any defects
           </div>
         </div>
 
+        {/* Risk Check */}
+        {showRiskCheck && (
+          <SettingsRiskWarning
+            form={form}
+            allEntries={allJournalEntries}
+            onApply={(patches) => setForm(f => ({ ...f, ...patches }))}
+            onDismiss={() => setShowRiskCheck(false)}
+          />
+        )}
+
         <div className="flex gap-3 pt-1">
           <Button type="button" variant="outline" onClick={onCancel} className="flex-1 border-slate-700 text-slate-400">Cancel</Button>
+          <Button
+            type="button"
+            onClick={() => setShowRiskCheck(v => !v)}
+            variant="outline"
+            className="border-amber-600/50 text-amber-400 hover:text-amber-300 gap-1"
+          >
+            <span className="text-base leading-none">🛡️</span>
+          </Button>
           <Button type="submit" disabled={saving} className="flex-1 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4 mr-1" /> Save Entry</>}
           </Button>
