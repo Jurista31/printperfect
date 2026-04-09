@@ -9,6 +9,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
+
     // Fetch learning data: community-wide (service role) + personal (user-scoped)
     const [corrections, missedDefects, sharedAnalyses, allVotes, myCorrections, myMissedDefects, myFeedback] = await Promise.all([
       base44.asServiceRole.entities.DefectCorrection.list('-created_date', 200),
