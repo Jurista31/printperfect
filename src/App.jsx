@@ -11,6 +11,7 @@ import JournalCompare from './pages/JournalCompare';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
 import MaterialLibrary from './pages/MaterialLibrary';
+import GCodeAnalyzer from './pages/GCodeAnalyzer';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -66,6 +67,7 @@ const AuthenticatedApp = () => {
       <Route path="/Dashboard" element={<LayoutWrapper currentPageName="Dashboard"><Dashboard /></LayoutWrapper>} />
       <Route path="/Analytics" element={<LayoutWrapper currentPageName="Analytics"><Analytics /></LayoutWrapper>} />
       <Route path="/MaterialLibrary" element={<LayoutWrapper currentPageName="MaterialLibrary"><MaterialLibrary /></LayoutWrapper>} />
+      <Route path="/GCodeAnalyzer" element={<LayoutWrapper currentPageName="GCodeAnalyzer"><GCodeAnalyzer /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
