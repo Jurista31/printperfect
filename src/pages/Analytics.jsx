@@ -14,6 +14,7 @@ import SettingsHeatmap from '@/components/analytics/SettingsHeatmap';
 import AmbientHeatmap from '@/components/analytics/AmbientHeatmap';
 import PerformanceOverTime from '@/components/analytics/PerformanceOverTime';
 import FilamentCostTab from '@/components/analytics/FilamentCostTab';
+import AIInsightsPanel from '@/components/analytics/AIInsightsPanel';
 import { format, parseISO, startOfMonth } from 'date-fns';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -99,7 +100,7 @@ function SectionCard({ title, icon: Icon, iconColor, children }) {
   );
 }
 
-const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient', 'Filament Cost'];
+const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient', 'Filament Cost', 'AI Insights'];
 
 // ─── main page ───────────────────────────────────────────────────────────────
 
@@ -536,6 +537,13 @@ export default function Analytics() {
         {tab === 'Filament Cost' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <FilamentCostTab entries={entries} />
+          </motion.div>
+        )}
+
+        {/* ── AI INSIGHTS TAB ── */}
+        {tab === 'AI Insights' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <AIInsightsPanel entries={entries} />
           </motion.div>
         )}
       </div>
