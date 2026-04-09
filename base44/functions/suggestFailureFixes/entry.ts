@@ -4,7 +4,14 @@ Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
 
   const body = await req.json();
-  const { event, data, automation } = body;
+  const { event, data, automation, args } = body;
+
+  // Verify shared secret when configured — set AUTOMATION_SECRET env var and
+  // set the same value as function_args.secret on the automation to enable this.
+  const expectedSecret = Deno.env.get('AUTOMATION_SECRET');
+  if (expectedSecret && args?.secret !== expectedSecret) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   // Validate this request originates from a platform entity automation
   if (!automation?.id || !event?.entity_id || event?.entity_name !== 'PrintJournalEntry') {
