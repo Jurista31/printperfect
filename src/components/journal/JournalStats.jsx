@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import FailureHeatmaps from './FailureHeatmaps';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { CheckCircle2, XCircle, AlertCircle, Clock, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -137,6 +138,12 @@ export default function JournalStats({ entries }) {
           </div>
         </div>
       )}
+
+      {/* Environmental Heatmaps */}
+      <div>
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-1">Environmental Trends</p>
+        <FailureHeatmaps entries={entries} />
+      </div>
     </div>
   );
 }
