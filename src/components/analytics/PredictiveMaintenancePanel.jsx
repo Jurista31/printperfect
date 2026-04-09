@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { BrainCircuit, Loader2, RefreshCw, AlertTriangle, ShieldCheck, Wrench, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
+import { BrainCircuit, Loader2, RefreshCw, AlertTriangle, ShieldCheck, Wrench, TrendingUp, ChevronDown, ChevronUp, Microscope, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -71,10 +71,24 @@ function buildContextForAI(entries, logs) {
   return { printerSummaries, maintenanceSummary, totalEntries: entries.length, totalLogs: logs.length };
 }
 
+const ROOT_CAUSE_ICONS = {
+  temperature: '🌡️',
+  adhesion: '📐',
+  mechanical: '⚙️',
+  retraction: '↩️',
+  material: '🧵',
+  speed: '⚡',
+  calibration: '🎯',
+  environment: '🌡️',
+  other: '🔍',
+};
+
 export default function PredictiveMaintenancePanel({ entries }) {
   const [predictions, setPredictions] = useState(null);
+  const [rootCauses, setRootCauses] = useState(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState({});
+  const [rcExpanded, setRcExpanded] = useState({});
 
   const { data: logs = [] } = useQuery({
     queryKey: ['maintenance-logs-predict'],
@@ -84,9 +98,32 @@ export default function PredictiveMaintenancePanel({ entries }) {
   const context = useMemo(() => buildContextForAI(entries, logs), [entries, logs]);
   const hasSufficientData = entries.length >= 5;
 
+  // Build failed print summaries for root cause analysis
+  const failedPrintSummaries = useMemo(() => {
+    return entries
+      .filter(e => e.outcome === 'failure')
+      .slice(0, 20) // Cap at 20 most recent failures
+      .map(e => ({
+        id: e.id,
+        title: e.title || 'Untitled',
+        printer: e.printer_model || 'Unknown',
+        material: e.filament_material || 'Unknown',
+        brand: e.filament_brand || '',
+        nozzle_temp: e.nozzle_temp,
+        bed_temp: e.bed_temp,
+        print_speed: e.print_speed,
+        layer_height: e.layer_height,
+        ambient_temp: e.ambient_temp,
+        ambient_humidity: e.ambient_humidity,
+        notes: e.notes || '',
+        date: e.print_date,
+      }));
+  }, [entries]);
+
   async function analyze() {
     setLoading(true);
     setPredictions(null);
+    setRootCauses(null);
 
     const { printerSummaries, maintenanceSummary } = context;
 
@@ -143,6 +180,53 @@ Respond in JSON only.`;
     });
 
     setPredictions(result);
+
+    // --- Root cause analysis pass ---
+    if (failedPrintSummaries.length > 0) {
+      const rcPrompt = `You are an expert FDM 3D printing failure analyst. Analyze these failed prints and identify the most probable root cause for each one based on their settings, notes, and known failure patterns.
+
+Failed prints to analyze:
+${failedPrintSummaries.map((p, i) => `
+${i + 1}. "${p.title}" (${p.printer}, ${p.material}${p.brand ? ' / ' + p.brand : ''})
+   Settings: nozzle=${p.nozzle_temp ? p.nozzle_temp + '°C' : '?'}, bed=${p.bed_temp ? p.bed_temp + '°C' : '?'}, speed=${p.print_speed ? p.print_speed + 'mm/s' : '?'}, layer=${p.layer_height ? p.layer_height + 'mm' : '?'}
+   Ambient: ${p.ambient_temp ? p.ambient_temp + '°C room' : ''} ${p.ambient_humidity ? p.ambient_humidity + '% RH' : ''}
+   Notes: ${p.notes || 'none'}`).join('')}
+
+For each print, provide:
+- A short, specific root cause label (e.g. "Warping due to poor bed adhesion", "Layer shifts due to loose belts", "Stringing due to incorrect retraction", "Under-extrusion due to clogged nozzle")
+- A one-sentence explanation referencing the specific settings that indicate this cause
+- A category from: temperature, adhesion, mechanical, retraction, material, speed, calibration, environment, other
+- A confidence level: high, medium, or low
+- One immediate fix action
+
+Return JSON only.`;
+
+      const rcResult = await base44.integrations.Core.InvokeLLM({
+        prompt: rcPrompt,
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            root_causes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  print_index: { type: 'number' },
+                  print_title: { type: 'string' },
+                  root_cause: { type: 'string' },
+                  explanation: { type: 'string' },
+                  category: { type: 'string' },
+                  confidence: { type: 'string' },
+                  fix_action: { type: 'string' },
+                },
+              },
+            },
+          },
+        },
+      });
+      setRootCauses(rcResult?.root_causes || []);
+    }
+
     setLoading(false);
   }
 
@@ -298,6 +382,56 @@ Respond in JSON only.`;
                 </button>
               );
             })
+          )}
+
+          {/* Root cause analysis section */}
+          {rootCauses && rootCauses.length > 0 && (
+            <div className="space-y-3 mt-4">
+              <div className="flex items-center gap-2 border-t border-slate-700/40 pt-4">
+                <Microscope className="w-4 h-4 text-pink-400" />
+                <p className="text-xs font-semibold text-white">Root Cause Breakdown</p>
+                <span className="text-[10px] text-slate-500 ml-auto">{rootCauses.length} failed prints analyzed</span>
+              </div>
+
+              {rootCauses.map((rc, i) => {
+                const isOpen = rcExpanded[i];
+                const confColor = rc.confidence === 'high' ? 'text-green-400' : rc.confidence === 'medium' ? 'text-amber-400' : 'text-slate-500';
+                const icon = ROOT_CAUSE_ICONS[rc.category] || ROOT_CAUSE_ICONS.other;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => setRcExpanded(prev => ({ ...prev, [i]: !prev[i] }))}
+                    className="w-full text-left bg-slate-800/50 border border-slate-700/40 rounded-xl p-3.5 hover:border-slate-600/60 transition-colors"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <span className="text-base flex-shrink-0 mt-0.5">{icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-xs font-semibold text-white leading-tight">{rc.root_cause}</p>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <span className={`text-[9px] font-bold capitalize ${confColor}`}>{rc.confidence}</span>
+                            {isOpen ? <ChevronUp className="w-3 h-3 text-slate-500" /> : <ChevronDown className="w-3 h-3 text-slate-500" />}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-0.5 truncate">{rc.print_title}</p>
+
+                        {isOpen && (
+                          <div className="mt-2.5 space-y-2">
+                            <p className="text-xs text-slate-300 leading-relaxed">{rc.explanation}</p>
+                            <div className="flex items-start gap-2 bg-slate-700/40 rounded-lg p-2">
+                              <Zap className="w-3 h-3 text-cyan-400 flex-shrink-0 mt-0.5" />
+                              <p className="text-xs text-slate-300">
+                                <span className="font-semibold text-cyan-400">Fix: </span>{rc.fix_action}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           )}
 
           <p className="text-[10px] text-slate-600 text-center pt-1">
