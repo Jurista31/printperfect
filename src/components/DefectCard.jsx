@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, AlertTriangle, AlertCircle, Info, Wrench, Lightbulb } from "lucide-react";
+import { ChevronDown, AlertTriangle, AlertCircle, Info, Wrench, Lightbulb, Crosshair } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const severityConfig = {
@@ -120,6 +120,43 @@ export default function DefectCard({ defect, index }) {
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {/* Bounding Box */}
+              {defect.location &&
+                typeof defect.location.x === 'number' &&
+                typeof defect.location.y === 'number' && (
+                <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/40">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Crosshair className="w-3.5 h-3.5 text-slate-400" />
+                    <p className="text-xs font-medium text-slate-400 uppercase">Defect Location</p>
+                  </div>
+                  {/* Visual mini-map */}
+                  <div className="relative w-full h-20 bg-slate-800 rounded-lg overflow-hidden border border-slate-700/40 mb-2">
+                    <div className="absolute inset-0 opacity-10"
+                      style={{ backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 9px,#94a3b8 9px,#94a3b8 10px),repeating-linear-gradient(90deg,transparent,transparent 9px,#94a3b8 9px,#94a3b8 10px)' }}
+                    />
+                    <div
+                      className={cn('absolute border-2 rounded flex items-center justify-center', config.border)}
+                      style={{
+                        left: `${defect.location.x}%`,
+                        top: `${defect.location.y}%`,
+                        width: `${defect.location.width}%`,
+                        height: `${defect.location.height}%`,
+                        backgroundColor: 'currentColor',
+                        opacity: 0.25,
+                      }}
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5 text-center">
+                    {[['X', defect.location.x], ['Y', defect.location.y], ['W', defect.location.width], ['H', defect.location.height]].map(([label, val]) => (
+                      <div key={label} className="bg-slate-800/60 rounded px-1.5 py-1">
+                        <p className="text-[10px] text-slate-500">{label}</p>
+                        <p className="text-xs font-mono font-semibold text-white">{Math.round(val)}%</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
