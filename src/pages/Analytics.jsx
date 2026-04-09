@@ -19,6 +19,7 @@ import PredictiveMaintenancePanel from '@/components/analytics/PredictiveMainten
 import MaterialAdvisorPanel from '@/components/analytics/MaterialAdvisorPanel';
 import PrintQualityAnalyzer from '@/components/analytics/PrintQualityAnalyzer';
 import FailureTrendsPanel from '@/components/analytics/FailureTrendsPanel';
+import EnergyMonitoringPanel from '@/components/analytics/EnergyMonitoringPanel';
 import { format, parseISO, startOfMonth } from 'date-fns';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -104,7 +105,7 @@ function SectionCard({ title, icon: Icon, iconColor, children }) {
   );
 }
 
-const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient', 'Filament Cost', 'AI Insights', 'Predict', 'Advisor', 'Visual QA', 'Trends'];
+const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient', 'Filament Cost', 'AI Insights', 'Predict', 'Advisor', 'Visual QA', 'Trends', 'Energy'];
 
 // ─── main page ───────────────────────────────────────────────────────────────
 
@@ -576,6 +577,13 @@ export default function Analytics() {
         {tab === 'Trends' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <FailureTrendsPanel entries={entries} />
+          </motion.div>
+        )}
+
+        {/* ── ENERGY TAB ── */}
+        {tab === 'Energy' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <EnergyMonitoringPanel entries={entries} />
           </motion.div>
         )}
       </div>
