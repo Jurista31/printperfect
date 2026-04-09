@@ -16,6 +16,7 @@ import PerformanceOverTime from '@/components/analytics/PerformanceOverTime';
 import FilamentCostTab from '@/components/analytics/FilamentCostTab';
 import AIInsightsPanel from '@/components/analytics/AIInsightsPanel';
 import PredictiveMaintenancePanel from '@/components/analytics/PredictiveMaintenancePanel';
+import MaterialAdvisorPanel from '@/components/analytics/MaterialAdvisorPanel';
 import { format, parseISO, startOfMonth } from 'date-fns';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -101,7 +102,7 @@ function SectionCard({ title, icon: Icon, iconColor, children }) {
   );
 }
 
-const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient', 'Filament Cost', 'AI Insights', 'Predict'];
+const TABS = ['Heatmaps', 'By Material', 'By Printer', 'Ambient', 'Filament Cost', 'AI Insights', 'Predict', 'Advisor'];
 
 // ─── main page ───────────────────────────────────────────────────────────────
 
@@ -552,6 +553,13 @@ export default function Analytics() {
         {tab === 'Predict' && (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
             <PredictiveMaintenancePanel entries={entries} />
+          </motion.div>
+        )}
+
+        {/* ── ADVISOR TAB ── */}
+        {tab === 'Advisor' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <MaterialAdvisorPanel entries={entries} />
           </motion.div>
         )}
       </div>
