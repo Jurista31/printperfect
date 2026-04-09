@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
-import { FlaskConical, Loader2, RefreshCw, Star, ThermometerSun, Gauge, ChevronDown, ChevronUp, PackageSearch } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { FlaskConical, Loader2, RefreshCw, Star, ThermometerSun, Gauge, ChevronDown, ChevronUp, PackageSearch, Search, SlidersHorizontal, CheckCircle2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -77,13 +77,64 @@ export default function MaterialAdvisorPanel({ entries }) {
   const [adviceMap, setAdviceMap] = useState({});
   const [loadingKey, setLoadingKey] = useState(null);
   const [expanded, setExpanded] = useState({});
+  const [savedKeys, setSavedKeys] = useState({});
+  const [savingKey, setSavingKey] = useState(null);
+  // Filters
+  const [searchText, setSearchText] = useState('');
+  const [filterMaterial, setFilterMaterial] = useState('All');
+  const [filterScore, setFilterScore] = useState('All');
+  const queryClient = useQueryClient();
 
   const { data: profiles = [] } = useQuery({
     queryKey: ['filament-profiles-advisor'],
     queryFn: () => base44.entities.FilamentProfile.list('-created_date', 100),
   });
 
-  const materials = useMemo(() => buildMaterialStats(entries, profiles), [entries, profiles]);
+  const allMaterials = useMemo(() => buildMaterialStats(entries, profiles), [entries, profiles]);
+
+  // Unique material types for filter
+  const materialTypes = useMemo(() => {
+    const types = [...new Set(allMaterials.map(m => m.material).filter(Boolean))];
+    return ['All', ...types.sort()];
+  }, [allMaterials]);
+
+  // Filtered list
+  const materials = useMemo(() => {
+    return allMaterials.filter(combo => {
+      const key = `${combo.brand}||${combo.material}`;
+      const advice = adviceMap[key];
+      const text = searchText.toLowerCase();
+      if (text && !combo.brand.toLowerCase().includes(text) && !combo.material.toLowerCase().includes(text)) return false;
+      if (filterMaterial !== 'All' && combo.material !== filterMaterial) return false;
+      if (filterScore !== 'All' && advice) {
+        const score = advice.compatibility_score;
+        if (filterScore === 'Excellent' && score < 80) return false;
+        if (filterScore === 'Good' && (score < 60 || score >= 80)) return false;
+        if (filterScore === 'Fair' && (score < 40 || score >= 60)) return false;
+        if (filterScore === 'Poor' && score >= 40) return false;
+      }
+      return true;
+    });
+  }, [allMaterials, adviceMap, searchText, filterMaterial, filterScore]);
+
+  async function applyToProfile(combo, advice) {
+    const key = `${combo.brand}||${combo.material}`;
+    setSavingKey(key);
+    const existing = profiles.find(p => p.brand === combo.brand && p.material === combo.material);
+    const updates = {
+      nozzle_temp: Math.round((advice.ideal_nozzle_min + advice.ideal_nozzle_max) / 2),
+      bed_temp: advice.ideal_bed_temp,
+      print_speed: Math.round((advice.ideal_speed_min + advice.ideal_speed_max) / 2),
+    };
+    if (existing) {
+      await base44.entities.FilamentProfile.update(existing.id, updates);
+    } else {
+      await base44.entities.FilamentProfile.create({ brand: combo.brand, material: combo.material, ...updates });
+    }
+    await queryClient.invalidateQueries({ queryKey: ['filament-profiles-advisor'] });
+    setSavedKeys(prev => ({ ...prev, [key]: true }));
+    setSavingKey(null);
+  }
 
   async function getAdvice(combo) {
     const key = `${combo.brand}||${combo.material}`;
@@ -137,7 +188,7 @@ Return JSON only.`;
     setLoadingKey(null);
   }
 
-  if (materials.length === 0) {
+  if (allMaterials.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center px-4">
         <PackageSearch className="w-12 h-12 text-slate-600 mb-3" />
@@ -162,6 +213,45 @@ Return JSON only.`;
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Search + Filters */}
+      <div className="space-y-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search brand or material…"
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            className="w-full bg-slate-800/60 border border-slate-700/50 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-violet-500/60"
+          />
+        </div>
+        <div className="flex gap-2">
+          <div className="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700/50 rounded-xl px-3 py-2 flex-1">
+            <SlidersHorizontal className="w-3 h-3 text-slate-500 flex-shrink-0" />
+            <select
+              value={filterMaterial}
+              onChange={e => setFilterMaterial(e.target.value)}
+              className="bg-transparent text-xs text-slate-300 w-full focus:outline-none"
+            >
+              {materialTypes.map(t => <option key={t} value={t} className="bg-slate-800">{t === 'All' ? 'All Materials' : t}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700/50 rounded-xl px-3 py-2 flex-1">
+            <Star className="w-3 h-3 text-slate-500 flex-shrink-0" />
+            <select
+              value={filterScore}
+              onChange={e => setFilterScore(e.target.value)}
+              className="bg-transparent text-xs text-slate-300 w-full focus:outline-none"
+            >
+              {['All', 'Excellent', 'Good', 'Fair', 'Poor'].map(s => <option key={s} value={s} className="bg-slate-800">{s === 'All' ? 'All Scores' : s}</option>)}
+            </select>
+          </div>
+        </div>
+        {materials.length === 0 && allMaterials.length > 0 && (
+          <p className="text-xs text-slate-500 text-center py-3">No filaments match your filters.</p>
+        )}
       </div>
 
       {/* Material cards */}
@@ -240,9 +330,27 @@ Return JSON only.`;
 
             {/* AI advice panel */}
             {advice && isExpanded && (
-              <div className={cn('border-t px-4 py-3 space-y-3', scoreStyle?.border, scoreStyle?.bg)}>
-                {/* Ideal settings */}
-                <div className="grid grid-cols-3 gap-2">
+            <div className={cn('border-t px-4 py-3 space-y-3', scoreStyle?.border, scoreStyle?.bg)}>
+            {/* Recommended Settings + Save button */}
+            <div className="flex items-center justify-between mb-1">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Recommended Settings</p>
+            <button
+              onClick={() => applyToProfile(combo, advice)}
+              disabled={savingKey === key || savedKeys[key]}
+              className={cn(
+                'flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-lg transition-all',
+                savedKeys[key]
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : 'bg-violet-600/30 hover:bg-violet-600/50 text-violet-300 border border-violet-500/30'
+              )}
+            >
+              {savingKey === key ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> :
+               savedKeys[key] ? <CheckCircle2 className="w-2.5 h-2.5" /> : <Save className="w-2.5 h-2.5" />}
+              {savedKeys[key] ? 'Saved!' : 'Apply to Profile'}
+            </button>
+            </div>
+            {/* Ideal settings */}
+            <div className="grid grid-cols-3 gap-2">
                   <div className="bg-slate-800/60 rounded-lg p-2.5 text-center">
                     <ThermometerSun className="w-3.5 h-3.5 text-orange-400 mx-auto mb-1" />
                     <p className="text-[10px] text-slate-500">Nozzle</p>
