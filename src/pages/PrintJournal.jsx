@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +10,7 @@ import JournalForm from '@/components/journal/JournalForm';
 import JournalTimeline from '@/components/journal/JournalTimeline';
 import JournalStats from '@/components/journal/JournalStats';
 import FailureSuggestions from '@/components/journal/FailureSuggestionCard';
+import JournalSearch, { EMPTY_FILTERS, applyFilters } from '@/components/journal/JournalSearch';
 
 const TABS = [
   { id: 'timeline', label: 'Timeline', icon: CalendarDays },
@@ -21,6 +22,9 @@ export default function PrintJournal() {
   const [tab, setTab] = useState('timeline');
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+
+  const filteredEntries = useMemo(() => applyFilters(entries, filters), [entries, filters]);
 
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ['print-journal'],
@@ -155,7 +159,8 @@ export default function PrintJournal() {
             <AnimatePresence mode="wait">
               {tab === 'timeline' ? (
                 <motion.div key="timeline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <JournalTimeline entries={entries} onEdit={handleEdit} onDelete={handleDelete} />
+                  <JournalSearch filters={filters} onChange={setFilters} totalCount={entries.length} filteredCount={filteredEntries.length} />
+                  <JournalTimeline entries={filteredEntries} onEdit={handleEdit} onDelete={handleDelete} />
                 </motion.div>
               ) : (
                 <motion.div key="stats" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
