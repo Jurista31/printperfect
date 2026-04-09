@@ -19,6 +19,7 @@ import CommunityComparison from "./CommunityComparison";
 import DefectCorrection from "./DefectCorrection";
 import AddMissedDefect from "./AddMissedDefect";
 import SmartSolutionRecommendations from "./SmartSolutionRecommendations";
+import DeepInsightsPanel from "./DeepInsightsPanel";
 import { cn } from "@/lib/utils";
 
 const qualityConfig = {
@@ -342,6 +343,9 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
           defectType={analysis.defects[0]?.name}
         />
       )}
+
+      {/* Deep AI Insights */}
+      <DeepInsightsPanel analysis={analysis} />
 
       {/* Printer Settings Suggestions */}
       {analysis.printer_settings_suggestions && analysis.printer_settings_suggestions.length > 0 && (
