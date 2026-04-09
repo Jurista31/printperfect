@@ -91,11 +91,14 @@ function TimelineList({ entries, onEdit, onDelete }) {
           >
             {entry.image_url ? (
               <img src={entry.image_url} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+            ) : entry.video_url ? (
+              <video src={entry.video_url} className="w-14 h-14 rounded-lg object-cover flex-shrink-0 bg-black" muted playsInline />
             ) : (
               <div className={cn("w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 bg-slate-700/50")}>
                 <Icon className={cn("w-6 h-6", cfg.textColor)} />
               </div>
             )}
+
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm font-semibold text-white truncate">{entry.title}</p>

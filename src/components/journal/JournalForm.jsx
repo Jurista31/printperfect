@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { X, Check, Upload, Loader2, Sparkles } from 'lucide-react';
+import { X, Check, Upload, Loader2, Sparkles, Video, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -58,6 +58,8 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
 
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [autoTagging, setAutoTagging] = useState(false);
   const [tagInput, setTagInput] = useState('');
 
   const { data: analyses = [] } = useQuery({
@@ -105,6 +107,48 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
     set('image_url', file_url);
     setUploading(false);
+  };
+
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingVideo(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    set('video_url', file_url);
+    setUploadingVideo(false);
+  };
+
+  const handleAutoTag = async () => {
+    setAutoTagging(true);
+    // Fetch linked analysis defects if available
+    let defectContext = '';
+    if (form.analysis_id) {
+      const analyses = await base44.entities.PrintAnalysis.list('-created_date', 50);
+      const linked = analyses.find(a => a.id === form.analysis_id);
+      if (linked?.defects?.length) {
+        defectContext = `Detected defects: ${linked.defects.map(d => d.name).join(', ')}.`;
+      }
+    }
+    const result = await base44.integrations.Core.InvokeLLM({
+      prompt: `Generate 3-6 concise tags (lowercase, no spaces, use hyphens) for a 3D print journal entry.
+
+Print details:
+- Title: ${form.title || 'untitled'}
+- Outcome: ${form.outcome}
+- Material: ${form.filament_material || 'unknown'}
+- Printer: ${form.printer_model || 'unknown'}
+- Notes: ${form.notes || 'none'}
+${defectContext}
+
+Return only a JSON array of tag strings. Focus on outcome, material, any defects, and notable characteristics.`,
+      response_json_schema: {
+        type: 'object',
+        properties: { tags: { type: 'array', items: { type: 'string' } } }
+      }
+    });
+    const suggested = (result?.tags || []).filter(t => !form.tags.includes(t));
+    set('tags', [...form.tags, ...suggested]);
+    setAutoTagging(false);
   };
 
   const addTag = () => {
@@ -306,6 +350,10 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
           <div className="flex gap-2 mb-2">
             <Input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())} placeholder="Add tag…" />
             <Button type="button" size="sm" onClick={addTag} variant="outline" className="border-slate-600 text-slate-400 hover:text-white flex-shrink-0">Add</Button>
+            <Button type="button" size="sm" onClick={handleAutoTag} disabled={autoTagging} variant="outline" className="border-fuchsia-600/50 text-fuchsia-400 hover:text-fuchsia-300 flex-shrink-0 gap-1">
+              {autoTagging ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+              AI
+            </Button>
           </div>
           {form.tags.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -319,20 +367,43 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
           )}
         </Field>
 
-        {/* Photo */}
-        <Field label="Photo">
-          <label className="flex items-center gap-3 cursor-pointer bg-slate-800 border border-dashed border-slate-600 rounded-lg px-4 py-3 hover:border-cyan-500/50 transition-colors">
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-            {uploading ? (
-              <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
-            ) : form.image_url ? (
-              <img src={form.image_url} alt="" className="w-12 h-12 object-cover rounded-lg" />
-            ) : (
-              <Upload className="w-4 h-4 text-slate-500" />
+        {/* Media */}
+        <div>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Media</p>
+          <div className="space-y-2">
+            {/* Photo */}
+            <label className="flex items-center gap-3 cursor-pointer bg-slate-800 border border-dashed border-slate-600 rounded-lg px-4 py-3 hover:border-cyan-500/50 transition-colors">
+              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+              {uploading ? (
+                <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
+              ) : form.image_url ? (
+                <img src={form.image_url} alt="" className="w-12 h-12 object-cover rounded-lg" />
+              ) : (
+                <Image className="w-4 h-4 text-slate-500" />
+              )}
+              <span className="text-xs text-slate-400">{form.image_url ? 'Change photo' : 'Upload a photo of the print'}</span>
+              {form.image_url && (
+                <button type="button" onClick={(e) => { e.preventDefault(); set('image_url', ''); }} className="ml-auto text-slate-600 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
+              )}
+            </label>
+            {/* Video */}
+            <label className="flex items-center gap-3 cursor-pointer bg-slate-800 border border-dashed border-slate-600 rounded-lg px-4 py-3 hover:border-cyan-500/50 transition-colors">
+              <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
+              {uploadingVideo ? (
+                <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
+              ) : (
+                <Video className="w-4 h-4 text-slate-500" />
+              )}
+              <span className="text-xs text-slate-400">{form.video_url ? 'Change video' : 'Upload a video or time-lapse'}</span>
+              {form.video_url && (
+                <button type="button" onClick={(e) => { e.preventDefault(); set('video_url', ''); }} className="ml-auto text-slate-600 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
+              )}
+            </label>
+            {form.video_url && (
+              <video src={form.video_url} controls className="w-full rounded-lg max-h-40 bg-black" />
             )}
-            <span className="text-xs text-slate-400">{form.image_url ? 'Change photo' : 'Upload a photo of the print'}</span>
-          </label>
-        </Field>
+          </div>
+        </div>
 
         <div className="flex gap-3 pt-1">
           <Button type="button" variant="outline" onClick={onCancel} className="flex-1 border-slate-700 text-slate-400">Cancel</Button>
