@@ -1,0 +1,148 @@
+{
+  "name": "SharedAnalysis",
+  "type": "object",
+  "properties": {
+    "analysis_id": {
+      "type": "string",
+      "description": "Reference to the original PrintAnalysis"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "URL of the print image"
+    },
+    "title": {
+      "type": "string",
+      "description": "Title for the shared post"
+    },
+    "description": {
+      "type": "string",
+      "description": "User's story or description"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "successful",
+        "problematic",
+        "work_in_progress"
+      ],
+      "description": "Status of the print"
+    },
+    "defects": {
+      "type": "array",
+      "description": "Identified defects from analysis",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "solutions_applied": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Solutions the user applied"
+    },
+    "print_profile": {
+      "type": "object",
+      "description": "Printer settings used",
+      "properties": {
+        "printer_model": {
+          "type": "string"
+        },
+        "material": {
+          "type": "string"
+        },
+        "nozzle_temp": {
+          "type": "number"
+        },
+        "bed_temp": {
+          "type": "number"
+        },
+        "print_speed": {
+          "type": "number"
+        },
+        "layer_height": {
+          "type": "number"
+        },
+        "infill": {
+          "type": "number"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "user_name": {
+      "type": "string",
+      "description": "Name of the user who shared"
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of likes"
+    },
+    "comments_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of comments"
+    },
+    "same_issue_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of users who had the same issue"
+    },
+    "is_solved": {
+      "type": "boolean",
+      "default": false,
+      "description": "Author marked this as resolved"
+    },
+    "solved_solution": {
+      "type": "string",
+      "description": "The solution that fixed the problem"
+    }
+  },
+  "required": [
+    "title",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {},
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

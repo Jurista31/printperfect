@@ -3,13 +3,14 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, User } from "lucide-react";
+import { Send, User, CornerDownRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
 export default function CommentSection({ sharedAnalysisId }) {
   const [newComment, setNewComment] = useState('');
+  const [replyTo, setReplyTo] = useState(null); // { id, user_name }
   const queryClient = useQueryClient();
 
   const { data: comments = [] } = useQuery({
@@ -22,13 +23,14 @@ export default function CommentSection({ sharedAnalysisId }) {
   });
 
   const createCommentMutation = useMutation({
-    mutationFn: async (content) => {
+    mutationFn: async ({ content, parentId }) => {
       const user = await base44.auth.me();
       
       const comment = await base44.entities.Comment.create({
         shared_analysis_id: sharedAnalysisId,
         user_name: user.full_name || user.email.split('@')[0],
-        content
+        content,
+        parent_comment_id: parentId || undefined
       });
 
       // Update comment count
@@ -41,7 +43,7 @@ export default function CommentSection({ sharedAnalysisId }) {
 
       return comment;
     },
-    onMutate: async (content) => {
+    onMutate: async ({ content, parentId }) => {
       const user = await base44.auth.me();
       
       // Cancel outgoing refetches
@@ -58,6 +60,7 @@ export default function CommentSection({ sharedAnalysisId }) {
         shared_analysis_id: sharedAnalysisId,
         user_name: user.full_name || user.email.split('@')[0],
         content,
+        parent_comment_id: parentId || undefined,
         created_date: new Date().toISOString()
       };
       
@@ -90,6 +93,7 @@ export default function CommentSection({ sharedAnalysisId }) {
     },
     onSuccess: () => {
       setNewComment('');
+      setReplyTo(null);
       toast.success('Comment added');
     },
     onSettled: () => {
@@ -101,36 +105,58 @@ export default function CommentSection({ sharedAnalysisId }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (newComment.trim()) {
-      createCommentMutation.mutate(newComment);
+      createCommentMutation.mutate({ content: newComment, parentId: replyTo?.id });
     }
   };
+
+  // Build tree: top-level + replies
+  const topLevel = comments.filter(c => !c.parent_comment_id);
+  const getReplies = (parentId) => comments.filter(c => c.parent_comment_id === parentId);
 
   return (
     <div className="p-4 space-y-4">
       {/* Existing Comments */}
       <AnimatePresence>
-        {comments.length > 0 && (
+        {topLevel.length > 0 && (
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {comments.map((comment, index) => (
-              <motion.div
-                key={comment.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex gap-3"
-              >
-                <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-slate-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="bg-slate-800 rounded-lg p-3">
-                    <p className="font-medium text-sm text-white mb-1">{comment.user_name}</p>
-                    <p className="text-sm text-slate-300 leading-relaxed">{comment.content}</p>
+            {topLevel.map((comment, index) => (
+              <motion.div key={comment.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <User className="w-4 h-4 text-slate-400" />
                   </div>
-                  <p className="text-xs text-slate-500 mt-1 ml-3">
-                    {format(new Date(comment.created_date), "MMM d 'at' h:mm a")}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="bg-slate-800 rounded-lg p-3">
+                      <p className="font-medium text-sm text-white mb-1">{comment.user_name}</p>
+                      <p className="text-sm text-slate-300 leading-relaxed">{comment.content}</p>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 ml-3">
+                      <p className="text-xs text-slate-500">{format(new Date(comment.created_date), "MMM d 'at' h:mm a")}</p>
+                      <button onClick={() => setReplyTo(replyTo?.id === comment.id ? null : { id: comment.id, user_name: comment.user_name })} className="text-xs text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-1">
+                        <CornerDownRight className="w-3 h-3" /> Reply
+                      </button>
+                    </div>
+                  </div>
                 </div>
+                {/* Replies */}
+                {getReplies(comment.id).length > 0 && (
+                  <div className="ml-11 mt-2 space-y-2 border-l-2 border-slate-700/50 pl-3">
+                    {getReplies(comment.id).map(reply => (
+                      <div key={reply.id} className="flex gap-2">
+                        <div className="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <User className="w-3 h-3 text-slate-400" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="bg-slate-800/70 rounded-lg p-2.5">
+                            <p className="font-medium text-xs text-white mb-0.5">{reply.user_name}</p>
+                            <p className="text-xs text-slate-300 leading-relaxed">{reply.content}</p>
+                          </div>
+                          <p className="text-xs text-slate-600 mt-0.5 ml-2">{format(new Date(reply.created_date), "MMM d 'at' h:mm a")}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>
@@ -138,6 +164,13 @@ export default function CommentSection({ sharedAnalysisId }) {
       </AnimatePresence>
 
       {/* Add Comment Form */}
+      {replyTo && (
+        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-800/50 rounded-lg px-3 py-2">
+          <CornerDownRight className="w-3 h-3 text-cyan-400" />
+          Replying to <span className="text-cyan-300 font-medium">{replyTo.user_name}</span>
+          <button onClick={() => setReplyTo(null)} className="ml-auto text-slate-500 hover:text-white">✕</button>
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="flex gap-2">
         <Textarea
           value={newComment}

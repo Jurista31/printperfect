@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from "framer-motion";
-import { Heart, MessageCircle, User, CheckCircle2, AlertTriangle, Wrench, Settings2, ChevronDown } from "lucide-react";
+import { Heart, MessageCircle, User, CheckCircle2, AlertTriangle, Wrench, Settings2, ChevronDown, Trophy, BookmarkCheck } from "lucide-react";
+import SameIssueButton from './SameIssueButton';
+import SaveBookmarkButton from './SaveBookmarkButton';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -20,7 +22,29 @@ const statusConfig = {
 export default function CommunityCard({ sharedAnalysis, index }) {
   const [showComments, setShowComments] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMarkSolved, setShowMarkSolved] = useState(false);
+  const [solvedInput, setSolvedInput] = useState('');
   const queryClient = useQueryClient();
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user-community'],
+    queryFn: () => base44.auth.me().catch(() => null)
+  });
+  const isAuthor = currentUser && sharedAnalysis.created_by === currentUser.email;
+
+  const markSolvedMutation = useMutation({
+    mutationFn: async (solution) => {
+      await base44.entities.SharedAnalysis.update(sharedAnalysis.id, {
+        is_solved: !sharedAnalysis.is_solved,
+        solved_solution: solution || undefined
+      });
+    },
+    onSuccess: () => {
+      setShowMarkSolved(false);
+      setSolvedInput('');
+      queryClient.invalidateQueries({ queryKey: ['shared-analyses'] });
+    }
+  });
   
   const { data: userLike } = useQuery({
     queryKey: ['like', sharedAnalysis.id],
@@ -97,6 +121,7 @@ export default function CommunityCard({ sharedAnalysis, index }) {
 
   const status = statusConfig[sharedAnalysis.status] || statusConfig.work_in_progress;
   const StatusIcon = status.icon;
+  const isSolved = sharedAnalysis.is_solved;
   const hasProfile = sharedAnalysis.print_profile && Object.keys(sharedAnalysis.print_profile).some(
     key => sharedAnalysis.print_profile[key] !== undefined && sharedAnalysis.print_profile[key] !== null
   );
@@ -108,6 +133,17 @@ export default function CommunityCard({ sharedAnalysis, index }) {
       transition={{ delay: index * 0.05 }}
       className="bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 overflow-hidden"
     >
+      {/* Solved banner */}
+      {isSolved && (
+        <div className="px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 flex items-center gap-2">
+          <Trophy className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="text-xs font-semibold text-emerald-300">Solved</span>
+          {sharedAnalysis.solved_solution && (
+            <span className="text-xs text-slate-400 truncate">· {sharedAnalysis.solved_solution}</span>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="p-4 flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500/20 to-teal-500/20 flex items-center justify-center">
@@ -119,10 +155,13 @@ export default function CommunityCard({ sharedAnalysis, index }) {
             {sharedAnalysis.created_date ? format(new Date(sharedAnalysis.created_date), "MMM d, yyyy 'at' h:mm a") : ''}
           </p>
         </div>
-        <Badge className={cn("flex items-center gap-1.5", status.bg, status.color, "border-0")}>
-          <StatusIcon className="w-3.5 h-3.5" />
-          {status.label}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge className={cn("flex items-center gap-1.5", status.bg, status.color, "border-0")}>
+            <StatusIcon className="w-3.5 h-3.5" />
+            {status.label}
+          </Badge>
+          <SaveBookmarkButton postId={sharedAnalysis.id} />
+        </div>
       </div>
 
       {/* Image */}
@@ -257,8 +296,38 @@ export default function CommunityCard({ sharedAnalysis, index }) {
         )}
       </div>
 
+      {/* Mark as Solved */}
+      {isAuthor && !sharedAnalysis.is_solved && (
+        <div className="px-4 pb-3">
+          {!showMarkSolved ? (
+            <button
+              onClick={() => setShowMarkSolved(true)}
+              className="text-xs text-slate-500 hover:text-emerald-400 transition-colors flex items-center gap-1"
+            >
+              <BookmarkCheck className="w-3.5 h-3.5" /> Mark as solved
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                value={solvedInput}
+                onChange={e => setSolvedInput(e.target.value)}
+                placeholder="What fixed it? (optional)"
+                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500"
+              />
+              <button
+                onClick={() => markSolvedMutation.mutate(solvedInput)}
+                className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Save
+              </button>
+              <button onClick={() => setShowMarkSolved(false)} className="text-xs text-slate-500 hover:text-white px-2">✕</button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Actions */}
-      <div className="px-4 pb-4 flex items-center gap-2 border-t border-slate-700/50 pt-3">
+      <div className="px-4 pb-4 flex items-center gap-2 border-t border-slate-700/50 pt-3 flex-wrap">
         <Button
           variant="ghost"
           size="sm"
@@ -281,6 +350,7 @@ export default function CommunityCard({ sharedAnalysis, index }) {
           <MessageCircle className="w-4 h-4" />
           <span>{sharedAnalysis.comments_count || 0}</span>
         </Button>
+        <SameIssueButton sharedAnalysis={sharedAnalysis} />
       </div>
 
       {/* Comments Section */}

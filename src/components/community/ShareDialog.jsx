@@ -14,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MobileSelect } from "@/components/ui/mobile-select";
-import { Share2, Loader2, CheckCircle2 } from "lucide-react";
+import { Share2, Loader2, CheckCircle2, Zap } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
@@ -34,8 +35,27 @@ export default function ShareDialog({ analysis, open, onOpenChange }) {
     notes: ''
   });
   const [shared, setShared] = useState(false);
-  
   const queryClient = useQueryClient();
+
+  // Fetch active printer profile for auto-fill
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['printer-profiles-share'],
+    queryFn: () => base44.entities.PrinterProfile.list()
+  });
+  const activeProfile = profiles.find(p => p.is_active) || profiles[0];
+
+  const autoFillFromProfile = () => {
+    if (!activeProfile) return;
+    setFormData(prev => ({
+      ...prev,
+      printer_model: activeProfile.printer_model || prev.printer_model,
+      material: activeProfile.default_material || prev.material,
+      nozzle_temp: activeProfile.default_nozzle_temp ? String(activeProfile.default_nozzle_temp) : prev.nozzle_temp,
+      bed_temp: activeProfile.default_bed_temp ? String(activeProfile.default_bed_temp) : prev.bed_temp,
+      print_speed: activeProfile.default_print_speed ? String(activeProfile.default_print_speed) : prev.print_speed,
+      layer_height: activeProfile.default_layer_height ? String(activeProfile.default_layer_height) : prev.layer_height,
+    }));
+  };
 
   const shareMutation = useMutation({
     mutationFn: async (data) => {
@@ -205,10 +225,22 @@ export default function ShareDialog({ analysis, open, onOpenChange }) {
 
               {/* Print Profile Settings */}
               <div className="space-y-4 pt-4 border-t border-slate-700">
-                <h3 className="font-semibold text-cyan-400 flex items-center gap-2">
-                  ⚙️ Print Profile Settings
-                  <span className="text-xs text-slate-500 font-normal">(optional)</span>
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-cyan-400 flex items-center gap-2">
+                    ⚙️ Print Profile Settings
+                    <span className="text-xs text-slate-500 font-normal">(optional)</span>
+                  </h3>
+                  {activeProfile && (
+                    <button
+                      type="button"
+                      onClick={autoFillFromProfile}
+                      className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 transition-colors"
+                    >
+                      <Zap className="w-3 h-3" />
+                      Auto-fill from {activeProfile.name}
+                    </button>
+                  )}
+                </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

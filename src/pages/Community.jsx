@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Users, TrendingUp, Clock, Flame, RefreshCw, Wrench, ArrowRight } from 'lucide-react';
+import { Users, TrendingUp, Clock, Flame, RefreshCw, Wrench, ArrowRight, Bookmark, AlertCircle } from 'lucide-react';
+import { getSavedPosts } from '@/components/community/SaveBookmarkButton';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MobileSelect } from "@/components/ui/mobile-select";
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 export default function Community() {
   const [sortBy, setSortBy] = useState('recent');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const [filters, setFilters] = useState({
@@ -63,9 +65,13 @@ export default function Community() {
     setTouchStart(0);
   };
 
+  const savedIds = getSavedPosts();
+
   // Filter and sort
   const filteredAnalyses = sharedAnalyses
     .filter(analysis => {
+      // Saved only filter
+      if (showSavedOnly && !savedIds.includes(analysis.id)) return false;
       // Status filter
       if (filterStatus !== 'all' && analysis.status !== filterStatus) return false;
       
@@ -116,10 +122,13 @@ export default function Community() {
       return true;
     })
     .sort((a, b) => {
-      if (sortBy === 'popular') {
-        return (b.likes_count || 0) - (a.likes_count || 0);
-      } else if (sortBy === 'discussed') {
-        return (b.comments_count || 0) - (a.comments_count || 0);
+      if (sortBy === 'popular') return (b.likes_count || 0) - (a.likes_count || 0);
+      if (sortBy === 'discussed') return (b.comments_count || 0) - (a.comments_count || 0);
+      if (sortBy === 'same_issue') return (b.same_issue_count || 0) - (a.same_issue_count || 0);
+      if (sortBy === 'solved') {
+        if (a.is_solved && !b.is_solved) return -1;
+        if (!a.is_solved && b.is_solved) return 1;
+        return new Date(b.created_date) - new Date(a.created_date);
       }
       return new Date(b.created_date) - new Date(a.created_date);
     });
@@ -206,22 +215,29 @@ export default function Community() {
 
           {/* Sort and Status Filter */}
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-            <Tabs value={sortBy} onValueChange={setSortBy} className="w-full sm:w-auto">
-              <TabsList className="bg-slate-800 border border-slate-700 w-full sm:w-auto">
-                <TabsTrigger value="recent" className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Recent
-                </TabsTrigger>
-                <TabsTrigger value="popular" className="flex items-center gap-2">
-                  <Flame className="w-4 h-4" />
-                  Popular
-                </TabsTrigger>
-                <TabsTrigger value="discussed" className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" />
-                  Discussed
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex flex-col gap-2 w-full sm:w-auto">
+              <Tabs value={sortBy} onValueChange={setSortBy} className="w-full sm:w-auto">
+                <TabsList className="bg-slate-800 border border-slate-700 w-full sm:w-auto">
+                  <TabsTrigger value="recent"><Clock className="w-3.5 h-3.5 mr-1" />Recent</TabsTrigger>
+                  <TabsTrigger value="popular"><Flame className="w-3.5 h-3.5 mr-1" />Popular</TabsTrigger>
+                  <TabsTrigger value="discussed"><TrendingUp className="w-3.5 h-3.5 mr-1" />Discussed</TabsTrigger>
+                  <TabsTrigger value="same_issue"><AlertCircle className="w-3.5 h-3.5 mr-1" />Same Issue</TabsTrigger>
+                  <TabsTrigger value="solved">✅ Solved</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <button
+                onClick={() => setShowSavedOnly(v => !v)}
+                className={cn(
+                  'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-all self-start',
+                  showSavedOnly
+                    ? 'bg-cyan-500/20 border-cyan-500/60 text-cyan-300'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+                )}
+              >
+                <Bookmark className={cn('w-3.5 h-3.5', showSavedOnly && 'fill-current')} />
+                {showSavedOnly ? 'Showing saved' : 'Show saved only'}
+              </button>
+            </div>
 
             <MobileSelect 
               value={filterStatus} 
