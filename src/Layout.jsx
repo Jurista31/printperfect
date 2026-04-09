@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, Users, Settings, TrendingUp, GitCompare, BookOpen, LayoutDashboard, BarChart3, Lightbulb, FileCode, Printer } from 'lucide-react';
+import { Home, Users, Settings, BookOpen, LayoutDashboard, Lightbulb, FileCode, Printer, MoreHorizontal, BarChart2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -53,12 +53,18 @@ export default function Layout({ children, currentPageName }) {
   const navItems = [
     { name: 'Analyze', icon: Home, page: 'Home' },
     { name: 'Journal', icon: BookOpen, page: 'PrintJournal' },
-    { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
-    { name: 'Tips', icon: Lightbulb, page: 'Tips' },
     { name: 'Community', icon: Users, page: 'Community' },
+    { name: 'Tips', icon: Lightbulb, page: 'Tips' },
+  ];
+
+  const moreItems = [
+    { name: 'Dashboard', icon: LayoutDashboard, page: 'Dashboard' },
     { name: 'G-Code', icon: FileCode, page: 'GCodeAnalyzer' },
     { name: 'Printers', icon: Printer, page: 'PrinterProfiles' },
+    { name: 'Analytics', icon: BarChart2, page: 'Analytics' },
   ];
+
+  const isMoreActive = moreItems.some(item => item.page === currentPageName);
 
   const handleTabClick = (page) => {
     const isActive = currentPageName === page;
@@ -155,20 +161,63 @@ export default function Layout({ children, currentPageName }) {
               );
             })}
             
-            {/* Settings */}
-            <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
+            {/* More */}
+            <Sheet>
               <SheetTrigger asChild>
                 <button
-                  className="flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors text-slate-500 hover:text-slate-300 no-select"
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors relative no-select",
+                    isMoreActive ? "text-cyan-400" : "text-slate-500 hover:text-slate-300"
+                  )}
                 >
-                  <Settings className="w-6 h-6" />
-                  <span className="text-xs font-medium">Account</span>
+                  {isMoreActive && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-gradient-to-r from-cyan-500 to-teal-500 rounded-full" />
+                  )}
+                  <MoreHorizontal className="w-6 h-6" />
+                  <span className="text-xs font-medium">More</span>
                 </button>
               </SheetTrigger>
-              <SheetContent 
-                side="bottom" 
-                className="bg-slate-900 border-slate-800 max-h-[90vh] overflow-y-auto"
-              >
+              <SheetContent side="bottom" className="bg-slate-900 border-slate-800">
+                <SheetHeader className="mb-4">
+                  <SheetTitle className="text-white text-sm">More</SheetTitle>
+                </SheetHeader>
+                <div className="grid grid-cols-4 gap-3 pb-4">
+                  {moreItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentPageName === item.page;
+                    return (
+                      <Link
+                        key={item.page}
+                        to={createPageUrl(item.page)}
+                        className={cn(
+                          "flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-colors",
+                          isActive
+                            ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400"
+                            : "bg-slate-800 border-slate-700 text-slate-400 hover:text-white"
+                        )}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span className="text-xs font-medium">{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+                <div className="border-t border-slate-800 pt-4 pb-2">
+                  <button
+                    onClick={() => setSettingsOpen(true)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 hover:text-white transition-colors"
+                  >
+                    <Settings className="w-5 h-5" />
+                    <span className="text-sm font-medium">Account Settings</span>
+                  </button>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Account Settings Sheet (triggered from More) */}
+            <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
+              <SheetTrigger className="hidden" />
+              <SheetContent side="bottom" className="bg-slate-900 border-slate-800 max-h-[90vh] overflow-y-auto">
                 <SheetHeader className="mb-6">
                   <SheetTitle className="text-white">Account Settings</SheetTitle>
                 </SheetHeader>
