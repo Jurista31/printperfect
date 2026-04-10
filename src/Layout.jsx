@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Home, Users, Settings, BookOpen, LayoutDashboard, Lightbulb, FileCode, Printer, MoreHorizontal, BarChart2, Flame, TrendingUp, CalendarDays } from 'lucide-react';
+import { Home, Users, Settings, BookOpen, LayoutDashboard, Lightbulb, FileCode, Printer, MoreHorizontal, BarChart2, Flame, TrendingUp, CalendarDays, FlaskConical } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -66,6 +66,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Heatmap', icon: Flame, page: 'FailureHeatmapGallery' },
     { name: 'Trends', icon: TrendingUp, page: 'TrendDashboard' },
     { name: 'Scheduler', icon: CalendarDays, page: 'PrintScheduler' },
+    { name: 'Root Cause', icon: FlaskConical, page: 'FailureAnalyzer' },
   ];
 
   const isMoreActive = moreItems.some(item => item.page === currentPageName);
