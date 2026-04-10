@@ -317,3 +317,308 @@ export async function exportAnalysisPdf(analysis) {
 
   doc.save(`print-analysis-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`);
 }
+
+// ─── Journal Entry PDF ───────────────────────────────────────────────────────
+export async function exportJournalEntryPdf(entry) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const contentWidth = pageWidth - margin * 2;
+  let y = 0;
+
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+  // Header
+  doc.setFillColor(20, 30, 50);
+  doc.rect(0, 0, pageWidth, 22, 'F');
+  doc.setTextColor(6, 182, 212);
+  doc.setFontSize(15);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PrintPerfect', margin, 14);
+  doc.setTextColor(148, 163, 184);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Journal Entry Report', margin, 19.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(format(new Date(), "MMM d, yyyy"), pageWidth - margin, 14, { align: 'right' });
+  y = 28;
+
+  // Title + outcome badge
+  const outcomeColors = { success: [52, 211, 153], failure: [239, 68, 68], partial: [245, 158, 11] };
+  const outColor = outcomeColors[entry.outcome] || outcomeColors.partial;
+  doc.setFillColor(
+    Math.round(outColor[0] * 0.15 + 15 * 0.85),
+    Math.round(outColor[1] * 0.15 + 23 * 0.85),
+    Math.round(outColor[2] * 0.15 + 42 * 0.85)
+  );
+  doc.roundedRect(margin, y, contentWidth, 12, 2, 2, 'F');
+  doc.setTextColor(226, 232, 240);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(entry.title || 'Untitled Print', margin + 4, y + 8.5);
+  doc.setTextColor(...outColor);
+  doc.setFontSize(8.5);
+  const outcomeLabel = (entry.outcome || 'unknown').charAt(0).toUpperCase() + (entry.outcome || 'unknown').slice(1);
+  doc.text(outcomeLabel, pageWidth - margin - 3, y + 8.5, { align: 'right' });
+  y += 17;
+
+  // Image
+  if (entry.image_url) {
+    const imgData = await loadImageAsBase64(entry.image_url);
+    if (imgData) {
+      const maxH = 70;
+      const ratio = imgData.width / imgData.height;
+      let w = contentWidth; let h = w / ratio;
+      if (h > maxH) { h = maxH; w = h * ratio; }
+      doc.setFillColor(30, 41, 59);
+      doc.roundedRect(margin, y, contentWidth, h + 4, 3, 3, 'F');
+      doc.addImage(imgData.dataUrl, 'JPEG', margin + (contentWidth - w) / 2, y + 2, w, h);
+      y += h + 10;
+    }
+  }
+
+  // Print settings
+  y = drawSectionHeader(doc, 'Print Settings', y, pageWidth);
+  const settings = [
+    ['Printer',        entry.printer_model],
+    ['Material',       entry.filament_material],
+    ['Brand',          entry.filament_brand],
+    ['Print Date',     entry.print_date],
+    ['Nozzle Temp',    entry.nozzle_temp    != null ? `${entry.nozzle_temp}°C`   : null],
+    ['Bed Temp',       entry.bed_temp       != null ? `${entry.bed_temp}°C`      : null],
+    ['Print Speed',    entry.print_speed    != null ? `${entry.print_speed} mm/s`: null],
+    ['Layer Height',   entry.layer_height   != null ? `${entry.layer_height} mm` : null],
+    ['Infill',         entry.infill_percent != null ? `${entry.infill_percent}%` : null],
+    ['Duration',       entry.duration_minutes != null ? `${entry.duration_minutes} min` : null],
+    ['Ambient Temp',   entry.ambient_temp   != null ? `${entry.ambient_temp}°C`  : null],
+    ['Humidity',       entry.ambient_humidity != null ? `${entry.ambient_humidity}%` : null],
+  ].filter(([, v]) => v);
+
+  const colW = (contentWidth - 4) / 2;
+  settings.forEach(([label, value], i) => {
+    const col = i % 2;
+    const row = Math.floor(i / 2);
+    const cx = margin + col * (colW + 4);
+    const cy = y + row * 9;
+    doc.setFillColor(22, 35, 58);
+    doc.roundedRect(cx, cy, colW, 7.5, 1.5, 1.5, 'F');
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(label + ':', cx + 3, cy + 5.2);
+    doc.setTextColor(226, 232, 240);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(value), cx + colW - 3, cy + 5.2, { align: 'right' });
+  });
+  y += Math.ceil(settings.length / 2) * 9 + 6;
+
+  // Notes
+  if (entry.notes) {
+    y = drawSectionHeader(doc, 'Notes', y, pageWidth);
+    doc.setTextColor(203, 213, 225);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    const lines = doc.splitTextToSize(entry.notes, contentWidth - 4);
+    doc.text(lines, margin + 2, y + 2);
+    y += lines.length * 5 + 8;
+  }
+
+  // Tags
+  if (entry.tags?.length > 0) {
+    y = drawSectionHeader(doc, 'Tags', y, pageWidth);
+    doc.setTextColor(34, 211, 238);
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(entry.tags.map(t => `#${t}`).join('  '), margin + 2, y + 2);
+    y += 10;
+  }
+
+  // Footer
+  doc.setFillColor(20, 30, 50);
+  doc.rect(0, pageHeight - 10, pageWidth, 10, 'F');
+  doc.setTextColor(71, 85, 105);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Generated by PrintPerfect', margin, pageHeight - 3.5);
+  doc.text('Page 1 of 1', pageWidth - margin, pageHeight - 3.5, { align: 'right' });
+
+  doc.save(`journal-${(entry.title || 'entry').replace(/\s+/g, '-').toLowerCase()}-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+}
+
+// ─── Failure Heatmap Session PDF ─────────────────────────────────────────────
+export async function exportHeatmapSessionPdf({ canvasDataUrl, imageUrl, marks, printerModel, material, aiResult }) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const contentWidth = pageWidth - margin * 2;
+  let y = 0;
+
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+  // Header
+  doc.setFillColor(20, 30, 50);
+  doc.rect(0, 0, pageWidth, 22, 'F');
+  doc.setTextColor(168, 85, 247);
+  doc.setFontSize(15);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PrintPerfect', margin, 14);
+  doc.setTextColor(148, 163, 184);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Failure Heatmap Report', margin, 19.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text(format(new Date(), "MMM d, yyyy 'at' h:mm a"), pageWidth - margin, 14, { align: 'right' });
+  y = 28;
+
+  // Context row
+  if (printerModel || material) {
+    doc.setFillColor(30, 41, 59);
+    doc.roundedRect(margin, y, contentWidth, 9, 2, 2, 'F');
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    if (printerModel) doc.text(`Printer: ${printerModel}`, margin + 4, y + 6);
+    if (material) doc.text(`Material: ${material}`, pageWidth - margin - 4, y + 6, { align: 'right' });
+    y += 13;
+  }
+
+  // Heatmap canvas image (with overlaid marks)
+  const imgSource = canvasDataUrl || imageUrl;
+  if (imgSource) {
+    let dataUrl = imgSource;
+    let imgW, imgH;
+    if (!imgSource.startsWith('data:')) {
+      const loaded = await loadImageAsBase64(imgSource);
+      if (loaded) { dataUrl = loaded.dataUrl; imgW = loaded.width; imgH = loaded.height; }
+    } else {
+      // Parse dimensions from canvas
+      const tmp = new Image();
+      await new Promise(r => { tmp.onload = r; tmp.src = dataUrl; });
+      imgW = tmp.naturalWidth || 400;
+      imgH = tmp.naturalHeight || 300;
+    }
+    if (dataUrl) {
+      const maxH = 80;
+      const ratio = (imgW || 4) / (imgH || 3);
+      let w = contentWidth; let h = w / ratio;
+      if (h > maxH) { h = maxH; w = h * ratio; }
+      doc.setFillColor(30, 41, 59);
+      doc.roundedRect(margin, y, contentWidth, h + 4, 3, 3, 'F');
+      doc.addImage(dataUrl, 'JPEG', margin + (contentWidth - w) / 2, y + 2, w, h);
+      y += h + 10;
+    }
+  }
+
+  // Marked zones summary
+  const FAILURE_LABELS = {
+    stringing: 'Stringing', adhesion: 'Bed Adhesion', warping: 'Warping',
+    layer_shift: 'Layer Shift', under_extrude: 'Under-Extrusion', blobs: 'Blobs/Zits'
+  };
+  const zoneSummary = Object.entries(FAILURE_LABELS)
+    .map(([id, label]) => ({ label, count: marks.filter(m => m.type === id).length }))
+    .filter(s => s.count > 0);
+
+  if (zoneSummary.length > 0) {
+    y = drawSectionHeader(doc, 'Marked Failure Zones', y, pageWidth);
+    const colW = (contentWidth - 4) / 3;
+    zoneSummary.forEach(({ label, count }, i) => {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const cx = margin + col * (colW + 2);
+      const cy = y + row * 9;
+      doc.setFillColor(22, 35, 58);
+      doc.roundedRect(cx, cy, colW, 7.5, 1.5, 1.5, 'F');
+      doc.setTextColor(203, 213, 225);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(label, cx + 3, cy + 5.2);
+      doc.setTextColor(168, 85, 247);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`×${count}`, cx + colW - 3, cy + 5.2, { align: 'right' });
+    });
+    y += Math.ceil(zoneSummary.length / 3) * 9 + 6;
+  }
+
+  // AI Diagnosis
+  if (aiResult) {
+    y = drawSectionHeader(doc, 'AI Diagnosis', y, pageWidth);
+    if (aiResult.diagnosis) {
+      doc.setFillColor(40, 24, 60);
+      doc.roundedRect(margin, y, contentWidth, 1, 1, 1, 'F');
+      doc.setTextColor(203, 213, 225);
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      const dLines = doc.splitTextToSize(aiResult.diagnosis, contentWidth - 4);
+      doc.text(dLines, margin + 2, y + 4);
+      y += dLines.length * 5 + 8;
+    }
+    if (aiResult.priority_fix) {
+      doc.setFillColor(40, 32, 10);
+      doc.roundedRect(margin, y, contentWidth, 8, 1.5, 1.5, 'F');
+      doc.setTextColor(251, 191, 36);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('⚡ Priority Fix:', margin + 3, y + 5.5);
+      doc.setTextColor(226, 232, 240);
+      doc.setFont('helvetica', 'normal');
+      const pfLines = doc.splitTextToSize(aiResult.priority_fix, contentWidth - 35);
+      doc.text(pfLines[0], margin + 30, y + 5.5);
+      y += 13;
+    }
+  }
+
+  // Recommended adjustments
+  if (aiResult?.adjustments?.length > 0) {
+    y = drawSectionHeader(doc, 'Recommended Settings Adjustments', y, pageWidth);
+    aiResult.adjustments.forEach((adj, i) => {
+      if (y > pageHeight - 20) {
+        doc.addPage();
+        doc.setFillColor(15, 23, 42);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+        y = 15;
+      }
+      doc.setFillColor(22, 35, 58);
+      doc.roundedRect(margin, y, contentWidth, 8, 1.5, 1.5, 'F');
+      doc.setTextColor(6, 182, 212);
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(adj.setting, margin + 3, y + 5.5);
+      if (adj.current_value) {
+        doc.setTextColor(100, 116, 139);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.text(adj.current_value + ' →', pageWidth - margin - 30, y + 5.5, { align: 'right' });
+      }
+      doc.setTextColor(52, 211, 153);
+      doc.setFont('helvetica', 'bold');
+      doc.text(adj.suggested_value, pageWidth - margin - 3, y + 5.5, { align: 'right' });
+      y += 10;
+      if (adj.reason) {
+        doc.setTextColor(100, 116, 139);
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'italic');
+        doc.text(adj.reason, margin + 3, y - 2);
+        y += 3;
+      }
+    });
+  }
+
+  // Footer
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(20, 30, 50);
+    doc.rect(0, pageHeight - 10, pageWidth, 10, 'F');
+    doc.setTextColor(71, 85, 105);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Generated by PrintPerfect AI', margin, pageHeight - 3.5);
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 3.5, { align: 'right' });
+  }
+
+  doc.save(`heatmap-report-${format(new Date(), 'yyyy-MM-dd-HHmm')}.pdf`);
+}

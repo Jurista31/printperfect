@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, subMonths, addMonths } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock, FileDown, Loader2 } from 'lucide-react';
+import { exportJournalEntryPdf } from '@/utils/exportAnalysisPdf';
 import { cn } from '@/lib/utils';
 
 const OUTCOME_CONFIG = {
@@ -76,6 +77,14 @@ function CalendarMonth({ year, month, entries, onDayClick, selectedDay }) {
 }
 
 function TimelineList({ entries, onEdit, onDelete }) {
+  const [exporting, setExporting] = useState(null);
+
+  const handleExport = async (entry) => {
+    setExporting(entry.id);
+    await exportJournalEntryPdf(entry);
+    setExporting(null);
+  };
+
   return (
     <div className="space-y-3">
       {entries.map((entry, i) => {
@@ -127,6 +136,14 @@ function TimelineList({ entries, onEdit, onDelete }) {
               <div className="flex gap-3 mt-2">
                 <button onClick={() => onEdit(entry)} className="text-xs text-slate-500 hover:text-cyan-400 transition-colors">Edit</button>
                 <button onClick={() => onDelete(entry.id)} className="text-xs text-slate-500 hover:text-red-400 transition-colors">Delete</button>
+                <button
+                  onClick={() => handleExport(entry)}
+                  disabled={exporting === entry.id}
+                  className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-400 transition-colors disabled:opacity-50"
+                >
+                  {exporting === entry.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileDown className="w-3 h-3" />}
+                  PDF
+                </button>
               </div>
             </div>
           </motion.div>

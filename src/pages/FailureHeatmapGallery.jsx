@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Upload, Sparkles, X, Loader2, ChevronDown, RotateCcw, Layers, ImageIcon } from 'lucide-react';
+import { Flame, Upload, Sparkles, X, Loader2, ChevronDown, RotateCcw, Layers, ImageIcon, FileDown } from 'lucide-react';
+import { exportHeatmapSessionPdf } from '@/utils/exportAnalysisPdf';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +16,7 @@ const FAILURE_TYPES = [
   { id: 'blobs',         label: 'Blobs/Zits',      color: 'rgba(52,211,153,',  hex: '#34d399', emoji: '🔵' },
 ];
 
-function HeatmapCanvas({ imageUrl, marks, onAddMark, activeTool }) {
+function HeatmapCanvas({ imageUrl, marks, onAddMark, activeTool, onCanvasRef }) {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const imgRef = useRef(null);
@@ -71,7 +72,8 @@ function HeatmapCanvas({ imageUrl, marks, onAddMark, activeTool }) {
         canvasRef.current.width = w;
         canvasRef.current.height = h;
       }
-      setImgLoaded(true);
+        setImgLoaded(true);
+      if (onCanvasRef) onCanvasRef(canvasRef);
     };
     img.src = imageUrl;
   }, [imageUrl]);
@@ -124,7 +126,7 @@ function HeatmapCanvas({ imageUrl, marks, onAddMark, activeTool }) {
   );
 }
 
-function AISuggestions({ marks, printerModel, material, form }) {
+function AISuggestions({ marks, printerModel, material, form, onResult }) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -170,6 +172,7 @@ Return JSON with:
       }
     });
     setResult(res);
+    if (onResult) onResult(res);
     setLoading(false);
   };
 
@@ -248,6 +251,9 @@ export default function FailureHeatmapGallery() {
   const [printerModel, setPrinterModel] = useState('');
   const [material, setMaterial] = useState('PLA');
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const heatmapCanvasRef = useRef(null);
 
   const { data: journalEntries = [] } = useQuery({
     queryKey: ['print-journal'],
@@ -437,6 +443,7 @@ export default function FailureHeatmapGallery() {
             marks={marks}
             onAddMark={addMark}
             activeTool={activeTool}
+            onCanvasRef={(ref) => { heatmapCanvasRef.current = ref; }}
           />
         </motion.div>
 
@@ -462,7 +469,35 @@ export default function FailureHeatmapGallery() {
           printerModel={printerModel}
           material={material}
           form={null}
+          onResult={setAiResult}
         />
+
+        {/* PDF Download */}
+        {(marks.length > 0 || selectedImage) && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4">
+            <Button
+              onClick={async () => {
+                setExportingPdf(true);
+                const canvasDataUrl = heatmapCanvasRef.current?.current?.toDataURL('image/jpeg', 0.9) || null;
+                await exportHeatmapSessionPdf({
+                  canvasDataUrl,
+                  imageUrl: selectedImage,
+                  marks,
+                  printerModel,
+                  material,
+                  aiResult,
+                });
+                setExportingPdf(false);
+              }}
+              disabled={exportingPdf}
+              variant="outline"
+              className="w-full border-violet-600/50 text-violet-400 hover:text-violet-300 gap-2"
+            >
+              {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileDown className="w-4 h-4" />}
+              Download PDF Report
+            </Button>
+          </motion.div>
+        )}
       </div>
     </div>
   );
