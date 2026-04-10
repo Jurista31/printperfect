@@ -22,6 +22,7 @@ import DefectCorrection from "./DefectCorrection";
 import AddMissedDefect from "./AddMissedDefect";
 import SmartSolutionRecommendations from "./SmartSolutionRecommendations";
 import DeepInsightsPanel from "./DeepInsightsPanel";
+import GCodeVerifier from "./GCodeVerifier";
 import { cn } from "@/lib/utils";
 
 const qualityConfig = {
@@ -351,6 +352,9 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
 
       {/* Deep AI Insights */}
       <DeepInsightsPanel analysis={analysis} />
+
+      {/* G-Code Verifier */}
+      <GCodeVerifier analysis={analysis} />
 
       {/* Printer Settings Suggestions */}
       {analysis.printer_settings_suggestions && analysis.printer_settings_suggestions.length > 0 && (
