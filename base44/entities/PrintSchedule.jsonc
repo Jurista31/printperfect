@@ -1,0 +1,95 @@
+{
+  "name": "PrintSchedule",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Name of the queued print"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date scheduled"
+    },
+    "scheduled_time": {
+      "type": "string",
+      "description": "HH:MM time slot"
+    },
+    "estimated_duration_minutes": {
+      "type": "number"
+    },
+    "filament_material": {
+      "type": "string",
+      "enum": [
+        "PLA",
+        "PETG",
+        "ABS",
+        "ASA",
+        "TPU",
+        "Nylon",
+        "Resin",
+        "Other"
+      ]
+    },
+    "printer_model": {
+      "type": "string"
+    },
+    "gcode_url": {
+      "type": "string",
+      "description": "Uploaded G-Code file URL"
+    },
+    "gcode_filename": {
+      "type": "string"
+    },
+    "validation_result": {
+      "type": "object",
+      "description": "Cached G-Code analysis result"
+    },
+    "validation_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "validating",
+        "passed",
+        "warnings",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ],
+      "default": "queued"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "optimal_score": {
+      "type": "number",
+      "description": "0-100 score for this time slot based on history"
+    }
+  },
+  "required": [
+    "title",
+    "scheduled_date"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
