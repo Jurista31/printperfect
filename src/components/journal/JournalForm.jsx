@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import SettingsRiskWarning from './SettingsRiskWarning';
 import VideoTimelapse from '../VideoTimelapse';
+import JournalMediaCapture from './JournalMediaCapture';
 import { motion } from 'framer-motion';
 import { X, Check, Upload, Loader2, Sparkles, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -371,21 +372,7 @@ Return only a JSON array of tag strings. Focus on outcome, material, any defects
         <div>
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Media</p>
           <div className="space-y-2">
-            {/* Photo */}
-            <label className="flex items-center gap-3 cursor-pointer bg-slate-800 border border-dashed border-slate-600 rounded-lg px-4 py-3 hover:border-cyan-500/50 transition-colors">
-              <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-              {uploading ? (
-                <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
-              ) : form.image_url ? (
-                <img src={form.image_url} alt="" className="w-12 h-12 object-cover rounded-lg" />
-              ) : (
-                <Image className="w-4 h-4 text-slate-500" />
-              )}
-              <span className="text-xs text-slate-400">{form.image_url ? 'Change photo' : 'Upload a photo of the print'}</span>
-              {form.image_url && (
-                <button type="button" onClick={(e) => { e.preventDefault(); set('image_url', ''); }} className="ml-auto text-slate-600 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
-              )}
-            </label>
+            <JournalMediaCapture imageUrl={form.image_url} onImageUrl={url => set('image_url', url)} />
             <VideoTimelapse
               videoUrl={form.video_url}
               onVideoUrlChange={url => set('video_url', url)}
