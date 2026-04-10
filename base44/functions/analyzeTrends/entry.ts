@@ -3,15 +3,21 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
 
-  // Support both scheduled (service role) and manual (user) invocations
-  let targetUsers = [];
-  const isScheduled = req.headers.get('x-base44-automation') === 'true';
+  // Parse body — automation runs send { automation, args }; frontend calls send nothing or {}.
+  let body = {};
+  try { body = await req.json(); } catch (_) { /* no body */ }
 
-  if (isScheduled) {
-    // Analyze for all users
+  const expectedSecret = Deno.env.get('AUTOMATION_SECRET');
+  const providedSecret = body?.args?.secret;
+
+  let targetUsers = [];
+
+  if (expectedSecret && providedSecret === expectedSecret) {
+    // Verified scheduled automation — safe to run for all users
     const allUsers = await base44.asServiceRole.entities.User.list();
     targetUsers = allUsers;
   } else {
+    // Regular call — authenticate the requesting user only
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     targetUsers = [user];
