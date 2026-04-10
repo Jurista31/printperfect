@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { getStoredAISettings } from '@/hooks/useAISettings';
+import GCodeViewer from '@/components/GCodeViewer';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, FileCode, Loader2, AlertTriangle, CheckCircle2, Clock,
@@ -150,6 +151,13 @@ export default function GCodeAnalyzer() {
                 </>
               )}
             </div>
+
+            {/* Toolpath Viewer - shown as soon as file is selected */}
+            {file && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4">
+                <GCodeViewer file={file} />
+              </motion.div>
+            )}
 
             {file && (
               <motion.button
