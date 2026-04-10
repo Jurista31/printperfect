@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import SettingsRiskWarning from './SettingsRiskWarning';
+import VideoTimelapse from '../VideoTimelapse';
 import { motion } from 'framer-motion';
-import { X, Check, Upload, Loader2, Sparkles, Video, Image } from 'lucide-react';
+import { X, Check, Upload, Loader2, Sparkles, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -60,7 +61,6 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
   const [showRiskCheck, setShowRiskCheck] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [autoTagging, setAutoTagging] = useState(false);
   const [tagInput, setTagInput] = useState('');
 
@@ -116,14 +116,7 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
     setUploading(false);
   };
 
-  const handleVideoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingVideo(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    set('video_url', file_url);
-    setUploadingVideo(false);
-  };
+
 
   const handleAutoTag = async () => {
     setAutoTagging(true);
@@ -393,22 +386,11 @@ Return only a JSON array of tag strings. Focus on outcome, material, any defects
                 <button type="button" onClick={(e) => { e.preventDefault(); set('image_url', ''); }} className="ml-auto text-slate-600 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
               )}
             </label>
-            {/* Video */}
-            <label className="flex items-center gap-3 cursor-pointer bg-slate-800 border border-dashed border-slate-600 rounded-lg px-4 py-3 hover:border-cyan-500/50 transition-colors">
-              <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
-              {uploadingVideo ? (
-                <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
-              ) : (
-                <Video className="w-4 h-4 text-slate-500" />
-              )}
-              <span className="text-xs text-slate-400">{form.video_url ? 'Change video' : 'Upload a video or time-lapse'}</span>
-              {form.video_url && (
-                <button type="button" onClick={(e) => { e.preventDefault(); set('video_url', ''); }} className="ml-auto text-slate-600 hover:text-red-400"><X className="w-3.5 h-3.5" /></button>
-              )}
-            </label>
-            {form.video_url && (
-              <video src={form.video_url} controls className="w-full rounded-lg max-h-40 bg-black" />
-            )}
+            <VideoTimelapse
+              videoUrl={form.video_url}
+              onVideoUrlChange={url => set('video_url', url)}
+              entryId={initialEntry?.id}
+            />
           </div>
         </div>
 
