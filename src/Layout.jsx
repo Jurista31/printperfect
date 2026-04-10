@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Header from './components/Header';
+import SensorMonitor from './components/SensorMonitor';
 import AccountSettings from './components/AccountSettings';
 
 const ROOT_TABS = ['Home', 'Wizard', 'Community', 'Tips'];
@@ -108,6 +109,7 @@ export default function Layout({ children, currentPageName }) {
       }}
     >
       <Header currentPageName={currentPageName} />
+      <SensorMonitor />
       
       <AnimatePresence initial={false} mode="popLayout" custom={direction}>
         <motion.div
