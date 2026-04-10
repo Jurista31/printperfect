@@ -1,0 +1,77 @@
+{
+  "name": "PrinterMaintenance",
+  "type": "object",
+  "properties": {
+    "printer_profile_id": {
+      "type": "string",
+      "description": "Reference to PrinterProfile"
+    },
+    "printer_name": {
+      "type": "string",
+      "description": "Cached printer name for display"
+    },
+    "task_name": {
+      "type": "string",
+      "description": "Maintenance task label (e.g. Nozzle Cleaning)"
+    },
+    "task_type": {
+      "type": "string",
+      "enum": [
+        "nozzle_cleaning",
+        "belt_tensioning",
+        "bed_leveling",
+        "lubrication",
+        "ptfe_tube",
+        "extruder_gear",
+        "firmware_update",
+        "full_inspection",
+        "other"
+      ],
+      "description": "Category of maintenance task"
+    },
+    "interval_hours": {
+      "type": "number",
+      "description": "Alert after this many print hours since last maintenance"
+    },
+    "interval_days": {
+      "type": "number",
+      "description": "Alert after this many calendar days since last maintenance"
+    },
+    "last_performed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this task was last completed"
+    },
+    "last_performed_print_hours": {
+      "type": "number",
+      "description": "Cumulative print hours at the time of last maintenance"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this maintenance schedule is active"
+    }
+  },
+  "required": [
+    "printer_name",
+    "task_name",
+    "task_type"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
