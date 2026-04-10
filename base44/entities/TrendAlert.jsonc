@@ -1,0 +1,111 @@
+{
+  "name": "TrendAlert",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Owner of this alert"
+    },
+    "printer_model": {
+      "type": "string"
+    },
+    "material": {
+      "type": "string"
+    },
+    "defect_type": {
+      "type": "string",
+      "description": "e.g. stringing, bed_adhesion, warping"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ],
+      "default": "warning"
+    },
+    "message": {
+      "type": "string",
+      "description": "Short alert headline"
+    },
+    "details": {
+      "type": "string",
+      "description": "Full AI explanation"
+    },
+    "recommended_action": {
+      "type": "string"
+    },
+    "failure_rate_recent": {
+      "type": "number",
+      "description": "Failure % in recent 30 days"
+    },
+    "failure_rate_prior": {
+      "type": "number",
+      "description": "Failure % in prior 30 days"
+    },
+    "sample_size": {
+      "type": "number"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_dismissed": {
+      "type": "boolean",
+      "default": false
+    },
+    "period_analyzed": {
+      "type": "string",
+      "description": "Date range analyzed"
+    }
+  },
+  "required": [
+    "user_email",
+    "message",
+    "severity"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

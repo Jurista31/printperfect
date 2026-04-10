@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Printer } from 'lucide-react';
+import { ArrowLeft, Printer, Bell } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import TrendAlertsPanel, { useTrendAlerts } from './TrendAlertsPanel';
 
 const ROOT_PAGES = ['Home', 'Wizard', 'Community', 'Tips'];
 
@@ -10,6 +12,9 @@ export default function Header({ currentPageName }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isRootPage = ROOT_PAGES.includes(currentPageName);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const { data: alerts = [] } = useTrendAlerts();
+  const unreadCount = alerts.filter(a => !a.is_read).length;
 
   const handleBack = () => {
     if (window.history.length > 1) {
@@ -34,7 +39,26 @@ export default function Header({ currentPageName }) {
               </div>
               <span className="text-lg font-bold text-white">PrintDoc</span>
             </div>
-            <div />
+            <button
+              onClick={() => setAlertsOpen(true)}
+              className="relative p-1.5 rounded-lg text-slate-500 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            <Sheet open={alertsOpen} onOpenChange={setAlertsOpen}>
+              <SheetContent side="right" className="bg-slate-900 border-slate-800 w-[340px] flex flex-col">
+                <SheetHeader className="mb-0">
+                  <SheetTitle className="sr-only">Trend Alerts</SheetTitle>
+                </SheetHeader>
+                <TrendAlertsPanel onClose={() => setAlertsOpen(false)} />
+              </SheetContent>
+            </Sheet>
           </>
         ) : (
           <>
