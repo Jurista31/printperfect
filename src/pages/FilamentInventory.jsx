@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FilamentPredictions from '@/components/FilamentPredictions';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -302,6 +303,13 @@ export default function FilamentInventoryPage() {
                 {f === 'all' ? 'All' : f === 'low' ? `⚠ Low Stock (${lowStockSpools.length})` : f}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* Predictions */}
+        {spools.length > 0 && !isLoading && (
+          <div className="mb-6">
+            <FilamentPredictions spools={spools} />
           </div>
         )}
 
