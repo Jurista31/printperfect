@@ -6,6 +6,8 @@ import { format, parseISO, startOfMonth } from 'date-fns';
 import { LayoutDashboard, Loader2 } from 'lucide-react';
 
 import DashboardStatCards from '@/components/dashboard/DashboardStatCards';
+import MonthlyCostChart from '@/components/dashboard/MonthlyCostChart';
+import PrintCostCalculator, { estimateCost } from '@/components/PrintCostCalculator';
 import OutcomeOverTime from '@/components/dashboard/OutcomeOverTime';
 import OutcomePie from '@/components/dashboard/OutcomePie';
 import MaterialBreakdown from '@/components/dashboard/MaterialBreakdown';
@@ -67,6 +69,23 @@ export default function Dashboard() {
       };
     });
   }, [outcomeOverTime]);
+
+  // --- Monthly cost breakdown ---
+  const monthlyCosts = useMemo(() => {
+    const byMonth = {};
+    entries.forEach(e => {
+      if (!e.print_date || !e.duration_minutes) return;
+      const label = format(startOfMonth(parseISO(e.print_date)), 'MMM yy');
+      if (!byMonth[label]) byMonth[label] = { label, materialCost: 0, electricityCost: 0 };
+      const c = estimateCost(e);
+      byMonth[label].materialCost  += c.materialCost  || 0;
+      byMonth[label].electricityCost += c.elecCost || 0;
+    });
+    return Object.values(byMonth)
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .map(m => ({ ...m, materialCost: parseFloat(m.materialCost.toFixed(2)), electricityCost: parseFloat(m.electricityCost.toFixed(2)) }))
+      .slice(-10);
+  }, [entries]);
 
   // --- Material breakdown ---
   const materialBreakdown = useMemo(() => {
@@ -156,6 +175,14 @@ export default function Dashboard() {
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <PerformanceMetrics data={perfScatter} />
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+          <MonthlyCostChart data={monthlyCosts} />
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <PrintCostCalculator entries={entries} />
         </motion.div>
       </div>
     </div>
