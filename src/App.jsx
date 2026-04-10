@@ -15,6 +15,7 @@ import GCodeAnalyzer from './pages/GCodeAnalyzer';
 import PrinterProfilesPage from './pages/PrinterProfilesPage';
 import AdvancedSettings from './pages/AdvancedSettings';
 import FailureHeatmapGallery from './pages/FailureHeatmapGallery';
+import TrendDashboard from './pages/TrendDashboard';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -74,6 +75,7 @@ const AuthenticatedApp = () => {
       <Route path="/PrinterProfiles" element={<LayoutWrapper currentPageName="PrinterProfiles"><PrinterProfilesPage /></LayoutWrapper>} />
       <Route path="/AdvancedSettings" element={<LayoutWrapper currentPageName="AdvancedSettings"><AdvancedSettings /></LayoutWrapper>} />
       <Route path="/FailureHeatmapGallery" element={<LayoutWrapper currentPageName="FailureHeatmapGallery"><FailureHeatmapGallery /></LayoutWrapper>} />
+      <Route path="/TrendDashboard" element={<LayoutWrapper currentPageName="TrendDashboard"><TrendDashboard /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
