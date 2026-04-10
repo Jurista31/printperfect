@@ -51,7 +51,12 @@ export default function DefectCard({ defect, index }) {
           <Icon className={cn("w-5 h-5", config.color)} />
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-white font-semibold truncate">{defect.name}</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-white font-semibold truncate">{defect.name}</h3>
+            {defect.is_recurring && (
+              <span className="text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/40 px-1.5 py-0.5 rounded-full uppercase tracking-wide">Recurring</span>
+            )}
+          </div>
           <p className="text-slate-400 text-sm truncate">{defect.description}</p>
         </div>
         <span className={cn("px-2.5 py-1 rounded-full text-xs font-medium uppercase", config.badge)}>
@@ -160,6 +165,24 @@ export default function DefectCard({ defect, index }) {
                 </div>
               )}
 
+              {defect.confidence_score != null && (
+                <div className="bg-slate-900/50 rounded-lg p-3 border border-slate-700/40">
+                  <p className="text-xs font-medium text-slate-400 uppercase mb-2">AI Confidence</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${defect.confidence_score}%`,
+                          backgroundColor: defect.confidence_score >= 80 ? '#10b981' : defect.confidence_score >= 55 ? '#f59e0b' : '#ef4444'
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs font-mono text-white w-10 text-right">{defect.confidence_score}%</span>
+                  </div>
+                </div>
+              )}
+
               {defect.visible_angles && defect.visible_angles.length > 0 && (
                 <div className="bg-cyan-500/5 rounded-lg p-3 border border-cyan-500/20">
                   <p className="text-xs font-medium text-cyan-400 uppercase mb-1">
@@ -167,9 +190,7 @@ export default function DefectCard({ defect, index }) {
                   </p>
                   <div className="flex gap-2">
                     {defect.visible_angles.map((angle, i) => (
-                      <span key={i} className="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded text-xs">
-                        #{angle}
-                      </span>
+                      <span key={i} className="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded text-xs">#{angle}</span>
                     ))}
                   </div>
                 </div>

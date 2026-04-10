@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -92,6 +92,8 @@ For EACH defect found, provide:
 5. **Causes**: 3-5 specific root causes ranked by likelihood
 6. **Solutions**: 4-7 step-by-step fixes, ordered by ease of implementation
 7. **Settings Impact**: Which specific printer settings to adjust
+8. **Confidence Score**: 0-100 integer — how certain you are this defect is real (not lighting/shadow/artifact)
+9. **Is Recurring**: true/false — whether this matches a defect flagged as recurring in the user's history above
 
 PRINTER SETTINGS - For each suggestion, specify:
 - Which setting to change
@@ -166,7 +168,9 @@ const ANALYSIS_SCHEMA = {
           causes: { type: "array", items: { type: "string" } },
           solutions: { type: "array", items: { type: "string" } },
           settings_impact: { type: "array", items: { type: "string" } },
-          visible_angles: { type: "array", items: { type: "number" } }
+          visible_angles: { type: "array", items: { type: "number" } },
+          confidence_score: { type: "number", description: "0-100 confidence this defect is real" },
+          is_recurring: { type: "boolean", description: "true if this matches a defect seen in prior prints" }
         },
         required: ["name", "severity", "description", "location", "causes", "solutions"]
       }
@@ -297,11 +301,12 @@ export default function Home() {
       // Upload images AND fetch context in parallel
       let learnedSection = '';
       let printerProfileSection = '';
-      const [uploads, learningResponse, profiles, recentMaintenance] = await Promise.all([
+      const [uploads, learningResponse, profiles, recentMaintenance, recentJournal] = await Promise.all([
         Promise.all(files.map(file => base44.integrations.Core.UploadFile({ file }))),
         base44.functions.invoke('enhanceAnalysisPrompt', {}).catch(() => null),
         base44.entities.PrinterProfile.filter({ is_active: true }, '-created_date', 1).catch(() => []),
-        base44.entities.MaintenanceLog.list('-performed_at', 10).catch(() => [])
+        base44.entities.MaintenanceLog.list('-performed_at', 10).catch(() => []),
+        base44.entities.PrintJournalEntry.list('-print_date', 30).catch(() => [])
       ]);
       const fileUrls = uploads.map(u => u.file_url);
 
@@ -317,6 +322,27 @@ export default function Home() {
             return `- ${m.performed_at}: ${typeLabel}${result}${notes}`;
           }).join('\n');
           printerProfileSection += `\n\n**RECENT MAINTENANCE HISTORY (use for root-cause analysis):**\n${maintLines}\n\nIMPORTANT: Cross-reference these maintenance events with any defects you find. For example: if a nozzle was recently replaced and stringing appears, the new nozzle temperature may need recalibration. If bed leveling was done recently and first-layer issues exist, re-leveling may be needed. If lubrication happened and ghosting appears, over-lubrication could be the cause. Always reference relevant maintenance in your root-cause analysis.`;
+        }
+
+        // History-aware: detect recurring defects
+        if (recentJournal?.length > 5) {
+          // Collect tags+notes from recent failures to find patterns
+          const recentFailures = recentJournal.filter(e => e.outcome !== 'success').slice(0, 15);
+          if (recentFailures.length >= 2) {
+            const tagCounts = {};
+            recentFailures.forEach(e => {
+              (e.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; });
+            });
+            const recurring = Object.entries(tagCounts).filter(([,c]) => c >= 2).map(([t]) => t);
+            if (recurring.length > 0) {
+              printerProfileSection += `\n\n**RECURRING DEFECT HISTORY (from user's last ${recentFailures.length} failed prints):**\nThe following issues have recurred multiple times: ${recurring.join(', ')}.\nIMPORTANT: If you detect any of these same defects in this print, escalate your recommendation — note that this is a RECURRING problem and the user needs a permanent settings change or hardware fix, not just a one-time tweak. Clearly say "This is a recurring issue" in your description.`;
+            }
+          }
+          // Fix progress tracking: check if user tried a fix recently
+          const latestNotes = recentJournal.slice(0, 3).map(e => e.notes).filter(Boolean).join(' | ');
+          if (latestNotes) {
+            printerProfileSection += `\n\n**RECENT PRINT NOTES (to assess if previous fixes worked):**\n${latestNotes.slice(0, 400)}\nIf notes mention trying a fix (e.g. increased temp, recalibrated), assess whether that fix appears to have worked based on what you see in this image.`;
+          }
         }
 
         if (profiles?.length > 0) {

@@ -1,6 +1,8 @@
 import React, { useState, lazy, Suspense, useCallback } from 'react';
 import { motion } from "framer-motion";
 import { CheckCircle2, AlertTriangle, AlertCircle, Info, RotateCcw, Share2, Camera, Award, Eye, EyeOff, MessageSquare, Edit, Plus, Sparkles, FileDown, Move3d } from "lucide-react";
+import PrintHealthScore from './PrintHealthScore';
+import QuickJournalButton from './journal/QuickJournalButton';
 import { exportAnalysisPdf } from '@/utils/exportAnalysisPdf';
 
 const STLViewer = lazy(() => import('./STLViewer'));
@@ -238,6 +240,9 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
         )}
       </div>
 
+      {/* Print Health Score */}
+      <PrintHealthScore defects={analysis.defects} quality={analysis.overall_quality} />
+
       {/* AI Summary - Enhanced */}
       {analysis.summary && (
         <motion.div
@@ -354,6 +359,8 @@ export default function AnalysisResults({ analysis, onNewAnalysis }) {
 
       {/* Action Buttons */}
       <div className="space-y-3">
+        <QuickJournalButton analysis={analysis} />
+
         <Button
           onClick={() => setWorkflowOpen(true)}
           className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-medium rounded-xl transition-all duration-300"
