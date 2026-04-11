@@ -5,7 +5,7 @@ import SettingsRiskWarning from './SettingsRiskWarning';
 import VideoTimelapse from '../VideoTimelapse';
 import JournalMediaCapture from './JournalMediaCapture';
 import { motion } from 'framer-motion';
-import { X, Check, Upload, Loader2, Sparkles, Image } from 'lucide-react';
+import { X, Check, Upload, Loader2, Sparkles, Image, Box, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -63,6 +63,8 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
   const [showRiskCheck, setShowRiskCheck] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [autoTagging, setAutoTagging] = useState(false);
+  const [modelUploading, setModelUploading] = useState(false);
+  const [thumbnailGenerating, setThumbnailGenerating] = useState(false);
   const [tagInput, setTagInput] = useState('');
 
   const { data: analyses = [] } = useQuery({
@@ -115,6 +117,23 @@ export default function JournalForm({ initialEntry, onSave, onCancel }) {
     const { file_url } = await base44.integrations.Core.UploadFile({ file });
     set('image_url', file_url);
     setUploading(false);
+  };
+
+  const handleModelUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setModelUploading(true);
+    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    setForm(f => ({ ...f, model_file_url: file_url, model_filename: file.name }));
+    setModelUploading(false);
+  };
+
+  const handleGenerateThumbnail = async (entryId) => {
+    if (!entryId) return;
+    setThumbnailGenerating(true);
+    const res = await base44.functions.invoke('generateModelThumbnail', { entry_id: entryId });
+    if (res.data?.thumbnail_url) set('model_thumbnail_url', res.data.thumbnail_url);
+    setThumbnailGenerating(false);
   };
 
 
@@ -173,6 +192,7 @@ Return only a JSON array of tag strings. Focus on outcome, material, any defects
     });
     if (!payload.analysis_id) delete payload.analysis_id;
     if (!payload.image_url) delete payload.image_url;
+    if (!payload.model_file_url) delete payload.model_file_url;
 
     if (initialEntry?.id) {
       await base44.entities.PrintJournalEntry.update(initialEntry.id, payload);
@@ -367,6 +387,48 @@ Return only a JSON array of tag strings. Focus on outcome, material, any defects
             </div>
           )}
         </Field>
+
+        {/* Model File */}
+        <div>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">3D Model File</p>
+          <div className="space-y-2">
+            {form.model_file_url ? (
+              <div className="flex items-center gap-3 bg-slate-800/60 border border-slate-700 rounded-xl p-3">
+                <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center flex-shrink-0">
+                  {form.model_thumbnail_url
+                    ? <img src={form.model_thumbnail_url} alt="thumbnail" className="w-10 h-10 rounded-lg object-cover" />
+                    : <Box className="w-5 h-5 text-indigo-400" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-white truncate">{form.model_filename || 'Model uploaded'}</p>
+                  <p className="text-xs text-slate-500">STL / 3MF attached</p>
+                </div>
+                <div className="flex gap-2">
+                  {initialEntry?.id && !form.model_thumbnail_url && (
+                    <Button type="button" size="sm" onClick={() => handleGenerateThumbnail(initialEntry.id)}
+                      disabled={thumbnailGenerating}
+                      className="bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30 text-xs gap-1">
+                      {thumbnailGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                      Preview
+                    </Button>
+                  )}
+                  <button type="button" onClick={() => setForm(f => ({ ...f, model_file_url: '', model_filename: '', model_thumbnail_url: '' }))}
+                    className="text-slate-500 hover:text-red-400 transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-slate-700 hover:border-indigo-500/50 hover:bg-slate-800/40 transition-all cursor-pointer">
+                {modelUploading
+                  ? <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                  : <Box className="w-5 h-5 text-slate-500" />}
+                <span className="text-xs text-slate-500">{modelUploading ? 'Uploading…' : 'Upload STL or 3MF file'}</span>
+                <input type="file" accept=".stl,.3mf,.obj" className="hidden" onChange={handleModelUpload} disabled={modelUploading} />
+              </label>
+            )}
+          </div>
+        </div>
 
         {/* Media */}
         <div>

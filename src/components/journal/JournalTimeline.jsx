@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, subMonths, addMonths } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock, FileDown, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Clock, FileDown, Loader2, Box } from 'lucide-react';
 import { exportJournalEntryPdf } from '@/utils/exportAnalysisPdf';
 import { cn } from '@/lib/utils';
 
@@ -98,10 +98,21 @@ function TimelineList({ entries, onEdit, onDelete }) {
             transition={{ delay: i * 0.04 }}
             className={cn("bg-slate-800/60 border rounded-xl p-4 flex gap-3", cfg.border)}
           >
-            {entry.image_url ? (
+            {entry.model_thumbnail_url ? (
+              <div className="relative flex-shrink-0">
+                <img src={entry.model_thumbnail_url} alt="" className="w-14 h-14 rounded-lg object-cover" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full flex items-center justify-center">
+                  <Box className="w-2.5 h-2.5 text-white" />
+                </div>
+              </div>
+            ) : entry.image_url ? (
               <img src={entry.image_url} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
             ) : entry.video_url ? (
               <video src={entry.video_url} className="w-14 h-14 rounded-lg object-cover flex-shrink-0 bg-black" muted playsInline />
+            ) : entry.model_file_url ? (
+              <div className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 bg-indigo-500/15 border border-indigo-500/30">
+                <Box className="w-6 h-6 text-indigo-400" />
+              </div>
             ) : (
               <div className={cn("w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 bg-slate-700/50")}>
                 <Icon className={cn("w-6 h-6", cfg.textColor)} />

@@ -101,6 +101,18 @@
         "type": "string"
       },
       "description": "User-defined tags"
+    },
+    "model_file_url": {
+      "type": "string",
+      "description": "URL of the uploaded STL or 3MF model file"
+    },
+    "model_filename": {
+      "type": "string",
+      "description": "Original filename of the uploaded model"
+    },
+    "model_thumbnail_url": {
+      "type": "string",
+      "description": "AI-generated preview thumbnail for the model"
     }
   },
   "required": [
