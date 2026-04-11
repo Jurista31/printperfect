@@ -2,11 +2,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
-  const user = await base44.auth.me();
+
+  // Auth + body + printer profile all in parallel
+  const [user, body, profiles] = await Promise.all([
+    base44.auth.me(),
+    req.json(),
+    base44.entities.PrinterProfile.filter({ is_active: true }, '-created_date', 1).catch(() => []),
+  ]);
+
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const [{ gcode, filename, settings = {} }] = await Promise.all([req.json()]);
-  // (Promise.all ready for future parallel fetches)
+  const { gcode, filename, settings = {} } = body;
   const depth = settings.depth || 'standard';
   const checkTravelMoves = settings.checkTravelMoves !== false;
   const checkLayerHeight = settings.checkLayerHeight !== false;
@@ -14,18 +20,14 @@ Deno.serve(async (req) => {
   const optimizeSettings = settings.optimizeSettings !== false;
   if (!gcode) return Response.json({ error: 'No G-code provided' }, { status: 400 });
 
-  // Fetch user's active printer profile for tailored suggestions
+  // Build printer context from pre-fetched profile
   let printerContext = '';
-  try {
-    const profiles = await base44.entities.PrinterProfile.filter({ is_active: true }, '-created_date', 1);
-    if (profiles?.length > 0) {
-      const p = profiles[0];
-      printerContext = `\n\n=== USER'S ACTIVE PRINTER PROFILE ===\nModel: ${p.printer_model}\nNozzle: ${p.nozzle_size || 'unknown'}\nFirmware: ${p.firmware_version || 'unknown'}\nCommon Materials: ${(p.common_materials || []).join(', ')}\nDefault Material: ${p.default_material || 'unknown'}\n${p.default_nozzle_temp ? `Typical Nozzle Temp: ${p.default_nozzle_temp}°C` : ''}\n${p.default_bed_temp ? `Typical Bed Temp: ${p.default_bed_temp}°C` : ''}\n${p.default_print_speed ? `Typical Speed: ${p.default_print_speed}mm/s` : ''}\n${p.default_layer_height ? `Typical Layer Height: ${p.default_layer_height}mm` : ''}\n${p.notes ? `Printer Notes: ${p.notes}` : ''}\n\nIMPORTANT: Tailor all speed/temperature recommendations specifically to this printer. Reference firmware-specific G-code quirks if relevant (e.g. Klipper uses SET_VELOCITY_LIMIT, Marlin uses M203/M204). Suggest values within this printer's typical operating range.`;
-    }
-  } catch (_) {}
+  if (profiles?.length > 0) {
+    const p = profiles[0];
+    printerContext = `\n\n=== USER'S ACTIVE PRINTER PROFILE ===\nModel: ${p.printer_model}\nNozzle: ${p.nozzle_size || 'unknown'}\nFirmware: ${p.firmware_version || 'unknown'}\nCommon Materials: ${(p.common_materials || []).join(', ')}\nDefault Material: ${p.default_material || 'unknown'}\n${p.default_nozzle_temp ? `Typical Nozzle Temp: ${p.default_nozzle_temp}°C` : ''}\n${p.default_bed_temp ? `Typical Bed Temp: ${p.default_bed_temp}°C` : ''}\n${p.default_print_speed ? `Typical Speed: ${p.default_print_speed}mm/s` : ''}\n${p.default_layer_height ? `Typical Layer Height: ${p.default_layer_height}mm` : ''}\n${p.notes ? `Printer Notes: ${p.notes}` : ''}\n\nIMPORTANT: Tailor all speed/temperature recommendations specifically to this printer. Reference firmware-specific G-code quirks if relevant (e.g. Klipper uses SET_VELOCITY_LIMIT, Marlin uses M203/M204). Suggest values within this printer's typical operating range.`;
+  }
 
-
-  // Quick parse to extract basic metrics before sending to LLM
+  // Quick parse to extract basic metrics
   const lines = gcode.split('\n');
   let layerCount = 0;
   let nozzleTemp = null;

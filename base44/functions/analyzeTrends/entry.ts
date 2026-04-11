@@ -26,16 +26,14 @@ Deno.serve(async (req) => {
   const now = new Date();
   const recent30Start = new Date(now - 30 * 86400000);
   const prior30Start  = new Date(now - 60 * 86400000);
-  const allResults = [];
-
-  for (const user of targetUsers) {
+  const processUser = async (user) => {
     const entries = await base44.asServiceRole.entities.PrintJournalEntry.filter(
       { created_by: user.email },
       '-print_date',
       500
     );
 
-    if (entries.length < 5) continue;
+    if (entries.length < 5) return null;
 
     // Group by printer_model + material
     const groups = {};
@@ -61,7 +59,6 @@ Deno.serve(async (req) => {
         ? prior.filter(e => e.outcome === 'failure' || e.outcome === 'partial').length / prior.length
         : null;
 
-      // Aggregate defect hints from tags + notes
       const recentTags = recent.flatMap(e => e.tags || []).join(', ');
       const recentNotes = recent.filter(e => e.notes).map(e => e.notes).slice(0, 5).join(' | ');
 
@@ -78,7 +75,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (analysisInputs.length === 0) continue;
+    if (analysisInputs.length === 0) return null;
 
     const aiResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt: `You are a 3D printing failure analyst. Analyze this data and identify statistically concerning trends.
@@ -132,23 +129,28 @@ Return ONLY a JSON array (can be empty []) of alerts:
 
     const alerts = aiResponse?.alerts || [];
 
-    // Delete stale unread alerts + prepare new ones — run deletes in parallel
+    // Fetch existing alerts, then delete stale + create new — in parallel
     const existing = await base44.asServiceRole.entities.TrendAlert.filter({ user_email: user.email });
     const toDelete = existing.filter(a => !a.is_read && !a.is_dismissed);
-    await Promise.all(toDelete.map(old => base44.asServiceRole.entities.TrendAlert.delete(old.id)));
-
-    // Save new alerts in parallel
     const periodLabel = `${recent30Start.toISOString().slice(0, 10)} – ${now.toISOString().slice(0, 10)}`;
-    await Promise.all(alerts.map(alert => base44.asServiceRole.entities.TrendAlert.create({
-      ...alert,
-      user_email: user.email,
-      is_read: false,
-      is_dismissed: false,
-      period_analyzed: periodLabel,
-    })));
 
-    allResults.push({ user: user.email, alertsCreated: alerts.length });
-  }
+    await Promise.all([
+      ...toDelete.map(old => base44.asServiceRole.entities.TrendAlert.delete(old.id)),
+      ...alerts.map(alert => base44.asServiceRole.entities.TrendAlert.create({
+        ...alert,
+        user_email: user.email,
+        is_read: false,
+        is_dismissed: false,
+        period_analyzed: periodLabel,
+      })),
+    ]);
+
+    return { user: user.email, alertsCreated: alerts.length };
+  };
+
+  // Process all users in parallel
+  const results = await Promise.all(targetUsers.map(u => processUser(u)));
+  const allResults = results.filter(Boolean);
 
   return Response.json({ ok: true, results: allResults });
 });

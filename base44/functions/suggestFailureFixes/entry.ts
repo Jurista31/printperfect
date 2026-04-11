@@ -128,10 +128,15 @@ Return a one-sentence diagnosis summary and the step list.`;
     }
   });
 
-  // Store the suggestion linked to the journal entry
-  await base44.asServiceRole.entities.FailureSuggestion.create({
+  // Store suggestion + send email in parallel
+  const printTitle = journalEntry.title || 'Untitled print';
+  const stepsList = (result.steps || [])
+    .map((s, i) => `${i + 1}. <strong>${s.title}</strong> — ${s.detail}`)
+    .join('<br/>');
+
+  const savePromise = base44.asServiceRole.entities.FailureSuggestion.create({
     journal_entry_id: entryId,
-    print_title: journalEntry.title || 'Untitled print',
+    print_title: printTitle,
     created_by_user: journalEntry.created_by,
     summary: result.summary,
     steps: result.steps,
@@ -140,39 +145,29 @@ Return a one-sentence diagnosis summary and the step list.`;
     filament_material: journalEntry.filament_material || '',
   });
 
-  // Send email notification to the user
-  const userEmail = journalEntry.created_by;
-  if (userEmail) {
-    const printTitle = journalEntry.title || 'Untitled print';
-    const stepsList = (result.steps || [])
-      .map((s, i) => `${i + 1}. <strong>${s.title}</strong> — ${s.detail}`)
-      .join('<br/>');
-
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: userEmail,
-      subject: `🔧 Troubleshooting tips ready for: ${printTitle}`,
-      body: `<div style="font-family:sans-serif;max-width:560px;margin:auto;background:#0f172a;color:#e2e8f0;padding:28px;border-radius:12px">
+  const emailPromise = journalEntry.created_by
+    ? base44.asServiceRole.integrations.Core.SendEmail({
+        to: journalEntry.created_by,
+        subject: `🔧 Troubleshooting tips ready for: ${printTitle}`,
+        body: `<div style="font-family:sans-serif;max-width:560px;margin:auto;background:#0f172a;color:#e2e8f0;padding:28px;border-radius:12px">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
     <div style="width:36px;height:36px;background:linear-gradient(135deg,#06b6d4,#6366f1);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px">🖨️</div>
     <span style="font-size:18px;font-weight:700;color:#fff">PrintDoc</span>
   </div>
-
   <h2 style="color:#fff;font-size:16px;margin-bottom:6px">Troubleshooting tips ready</h2>
   <p style="color:#94a3b8;font-size:13px;margin-bottom:16px">Your print <strong style="color:#e2e8f0">${printTitle}</strong> was marked as a failure. The AI has generated ${result.steps?.length || 0} targeted fix suggestions for you.</p>
-
   ${result.summary ? `<div style="background:#1e293b;border-left:3px solid #ef4444;padding:12px 14px;border-radius:6px;margin-bottom:20px;font-size:13px;color:#fca5a5">${result.summary}</div>` : ''}
-
   <div style="margin-bottom:20px">
     <p style="font-size:13px;font-weight:600;color:#cbd5e1;margin-bottom:10px">Suggested steps to try:</p>
     <div style="font-size:13px;line-height:1.8;color:#94a3b8">${stepsList}</div>
   </div>
-
   <a href="${Deno.env.get('BASE44_APP_URL') || 'https://app.base44.com'}" style="display:inline-block;background:linear-gradient(135deg,#0d9488,#4f46e5);color:#fff;font-size:13px;font-weight:600;padding:10px 20px;border-radius:8px;text-decoration:none">Open Print Journal →</a>
-
   <p style="font-size:11px;color:#475569;margin-top:24px">You're receiving this because you logged a failed print in PrintDoc.</p>
 </div>`,
-    });
-  }
+      })
+    : Promise.resolve();
+
+  await Promise.all([savePromise, emailPromise]);
 
   return Response.json({ success: true, steps: result.steps?.length });
 });
