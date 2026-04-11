@@ -22,6 +22,7 @@ import PrintCompare from './pages/PrintCompare';
 import MaterialPerformance from './pages/MaterialPerformance';
 import FilamentInventoryPage from './pages/FilamentInventory';
 import PrinterMaintenancePage from './pages/PrinterMaintenance';
+import DefectAnalytics from './pages/DefectAnalytics';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -88,6 +89,7 @@ const AuthenticatedApp = () => {
       <Route path="/MaterialPerformance" element={<LayoutWrapper currentPageName="MaterialPerformance"><MaterialPerformance /></LayoutWrapper>} />
       <Route path="/FilamentInventory" element={<LayoutWrapper currentPageName="FilamentInventory"><FilamentInventoryPage /></LayoutWrapper>} />
       <Route path="/PrinterMaintenance" element={<LayoutWrapper currentPageName="PrinterMaintenance"><PrinterMaintenancePage /></LayoutWrapper>} />
+      <Route path="/DefectAnalytics" element={<LayoutWrapper currentPageName="DefectAnalytics"><DefectAnalytics /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
