@@ -132,23 +132,20 @@ Return ONLY a JSON array (can be empty []) of alerts:
 
     const alerts = aiResponse?.alerts || [];
 
-    // Delete stale unread alerts for this user first (avoid duplicates)
+    // Delete stale unread alerts + prepare new ones — run deletes in parallel
     const existing = await base44.asServiceRole.entities.TrendAlert.filter({ user_email: user.email });
-    for (const old of existing.filter(a => !a.is_read && !a.is_dismissed)) {
-      await base44.asServiceRole.entities.TrendAlert.delete(old.id);
-    }
+    const toDelete = existing.filter(a => !a.is_read && !a.is_dismissed);
+    await Promise.all(toDelete.map(old => base44.asServiceRole.entities.TrendAlert.delete(old.id)));
 
-    // Save new alerts
+    // Save new alerts in parallel
     const periodLabel = `${recent30Start.toISOString().slice(0, 10)} – ${now.toISOString().slice(0, 10)}`;
-    for (const alert of alerts) {
-      await base44.asServiceRole.entities.TrendAlert.create({
-        ...alert,
-        user_email: user.email,
-        is_read: false,
-        is_dismissed: false,
-        period_analyzed: periodLabel,
-      });
-    }
+    await Promise.all(alerts.map(alert => base44.asServiceRole.entities.TrendAlert.create({
+      ...alert,
+      user_email: user.email,
+      is_read: false,
+      is_dismissed: false,
+      period_analyzed: periodLabel,
+    })));
 
     allResults.push({ user: user.email, alertsCreated: alerts.length });
   }

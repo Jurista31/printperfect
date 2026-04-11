@@ -2,10 +2,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
-  const user = await base44.auth.me();
+  const [user, body] = await Promise.all([
+    base44.auth.me(),
+    req.json()
+  ]);
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { gcode, filename, defects = [], printer_settings_suggestions = [], overall_quality } = await req.json();
+  const { gcode, filename, defects = [], printer_settings_suggestions = [], overall_quality } = body;
   if (!gcode) return Response.json({ error: 'No G-code provided' }, { status: 400 });
 
   // Quick parse of key parameters
@@ -34,7 +37,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Get printer profile for context
+  // Get printer profile for context — run in parallel with nothing else to await here
   let printerCtx = '';
   try {
     const profiles = await base44.entities.PrinterProfile.filter({ is_active: true }, '-created_date', 1);
@@ -73,9 +76,9 @@ Existing Suggestions: ${suggestionSummary}
 === G-CODE FILE: ${filename || 'unknown'} ===
 Parsed Parameters: ${parsedParams || 'unable to parse'}
 
-Full G-code (first 8000 chars):
+Slicer header & key commands (first 2000 chars):
 \`\`\`
-${gcode.slice(0, 8000)}
+${gcode.slice(0, 2000)}
 \`\`\`
 ${printerCtx}
 

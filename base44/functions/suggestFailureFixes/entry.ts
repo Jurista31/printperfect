@@ -36,21 +36,22 @@ Deno.serve(async (req) => {
 
   const entryId = event.entity_id;
 
-  // Gather context: linked PrintAnalysis if available
-  let analysisDefects = [];
-  if (journalEntry.analysis_id) {
-    const analysis = await base44.asServiceRole.entities.PrintAnalysis.filter({ id: journalEntry.analysis_id });
-    if (analysis?.[0]?.defects?.length) {
-      analysisDefects = analysis[0].defects;
-    }
-  }
+  // Fetch linked analysis and recent analyses in parallel
+  const [linkedAnalysisArr, recentAnalyses] = await Promise.all([
+    journalEntry.analysis_id
+      ? base44.asServiceRole.entities.PrintAnalysis.filter({ id: journalEntry.analysis_id })
+      : Promise.resolve([]),
+    base44.asServiceRole.entities.PrintAnalysis.filter(
+      { created_by: journalEntry.created_by },
+      '-created_date',
+      5
+    )
+  ]);
 
-  // Also pull recent analyses from the same user to find recurring defects
-  const recentAnalyses = await base44.asServiceRole.entities.PrintAnalysis.filter(
-    { created_by: journalEntry.created_by },
-    '-created_date',
-    5
-  );
+  let analysisDefects = [];
+  if (linkedAnalysisArr?.[0]?.defects?.length) {
+    analysisDefects = linkedAnalysisArr[0].defects;
+  }
   const recentDefects = recentAnalyses.flatMap(a => a.defects || []);
 
   // Build prompt context

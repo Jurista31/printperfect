@@ -5,7 +5,8 @@ Deno.serve(async (req) => {
   const user = await base44.auth.me();
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { gcode, filename, settings = {} } = await req.json();
+  const [{ gcode, filename, settings = {} }] = await Promise.all([req.json()]);
+  // (Promise.all ready for future parallel fetches)
   const depth = settings.depth || 'standard';
   const checkTravelMoves = settings.checkTravelMoves !== false;
   const checkLayerHeight = settings.checkLayerHeight !== false;
@@ -69,9 +70,9 @@ Deno.serve(async (req) => {
 
 ${depthInstruction}${checksInstruction ? '\n' + checksInstruction : ''}
 
-G-code content:
+G-code content (first 6000 chars):
 \`\`\`
-${gcode}
+${gcode.slice(0, 6000)}
 \`\`\`
 ${printerContext}
 
