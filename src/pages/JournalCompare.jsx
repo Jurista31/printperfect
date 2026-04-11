@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import { GitCompare, ChevronDown, CheckCircle2, XCircle, AlertCircle, Thermometer, Gauge, Layers, Package, Wind, Clock, Droplets, Percent, Bug, ShieldAlert } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { GitCompare, ChevronDown, CheckCircle2, XCircle, AlertCircle, Thermometer, Gauge, Layers, Package, Wind, Clock, Droplets, Percent, Bug, ShieldAlert, Sparkles, Loader2, TrendingUp, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
@@ -226,9 +226,23 @@ function DefectColumn({ entry, analysis, loading }) {
   );
 }
 
+const IMPACT_CONFIG = {
+  high:   { color: 'text-red-400',    bg: 'bg-red-500/10 border-red-500/20',    label: 'High Impact' },
+  medium: { color: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/20', label: 'Med Impact' },
+  low:    { color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20',   label: 'Low Impact' },
+};
+
+const CONFIDENCE_CONFIG = {
+  high:   { color: 'text-emerald-400', icon: CheckCircle2 },
+  medium: { color: 'text-amber-400',   icon: AlertTriangle },
+  low:    { color: 'text-slate-400',   icon: Info },
+};
+
 export default function JournalCompare() {
   const [selectedA, setSelectedA] = useState(null);
   const [selectedB, setSelectedB] = useState(null);
+  const [aiResult, setAiResult] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ['print-journal'],
@@ -252,6 +266,18 @@ export default function JournalCompare() {
     enabled: !!entryB?.analysis_id,
     select: data => data?.[0] || null,
   });
+
+  const handleAICompare = async () => {
+    if (!entryA || !entryB) return;
+    setAiResult(null);
+    setAiLoading(true);
+    const res = await base44.functions.invoke('compareJournalEntries', {
+      entry_id_a: entryA.id,
+      entry_id_b: entryB.id,
+    });
+    setAiResult(res.data);
+    setAiLoading(false);
+  };
 
   const changedCount = SETTINGS.filter(s => {
     const vA = entryA?.[s.key];
@@ -373,7 +399,7 @@ export default function JournalCompare() {
                   <DefectColumn entry={entryB} analysis={analysisB} loading={loadingB} />
                 </div>
 
-                {/* Insight banner if one succeeded and one failed */}
+                {/* Insight banner */}
                 {entryA.outcome !== entryB.outcome && (entryA.outcome === 'success' || entryB.outcome === 'success') && changedCount > 0 && (
                   <div className="mt-3 bg-teal-500/10 border border-teal-500/20 rounded-xl p-3 flex gap-2">
                     <ShieldAlert className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
@@ -382,6 +408,93 @@ export default function JournalCompare() {
                     </p>
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {/* AI Compare Button */}
+            {entryA && entryB && (
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="mt-6">
+                <button
+                  onClick={handleAICompare}
+                  disabled={aiLoading}
+                  className="w-full h-14 rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-60 text-white font-semibold flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-indigo-500/20"
+                >
+                  {aiLoading
+                    ? <><Loader2 className="w-5 h-5 animate-spin" /> Analyzing prints…</>
+                    : <><Sparkles className="w-5 h-5" /> AI: Why did one succeed?
+                  </>}
+                </button>
+
+                <AnimatePresence>
+                  {aiResult && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="mt-4 space-y-3"
+                    >
+                      {/* Summary */}
+                      <div className="bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 rounded-2xl p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="w-4 h-4 text-violet-400" />
+                          <p className="text-sm font-semibold text-violet-300">AI Analysis</p>
+                          {aiResult.confidence && (() => {
+                            const cfg = CONFIDENCE_CONFIG[aiResult.confidence] || CONFIDENCE_CONFIG.medium;
+                            const CIcon = cfg.icon;
+                            return (
+                              <span className={`ml-auto flex items-center gap-1 text-xs ${cfg.color}`}>
+                                <CIcon className="w-3 h-3" />
+                                {aiResult.confidence} confidence
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <p className="text-sm text-slate-200 leading-relaxed">{aiResult.summary}</p>
+                        {aiResult.confidence_reason && (
+                          <p className="text-xs text-slate-500 mt-2 italic">{aiResult.confidence_reason}</p>
+                        )}
+                      </div>
+
+                      {/* Root Causes */}
+                      {aiResult.root_causes?.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="w-4 h-4 text-amber-400" />
+                            <p className="text-sm font-semibold text-white">Root Causes</p>
+                          </div>
+                          {aiResult.root_causes.map((cause, i) => {
+                            const imp = IMPACT_CONFIG[cause.impact] || IMPACT_CONFIG.medium;
+                            return (
+                              <div key={i} className={`rounded-xl border p-3 ${imp.bg}`}>
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className={`text-sm font-semibold ${imp.color}`}>{i + 1}. {cause.title}</p>
+                                  <span className={`text-xs px-1.5 py-0.5 rounded-full border ${imp.bg} ${imp.color}`}>{imp.label}</span>
+                                </div>
+                                <p className="text-xs text-slate-300 leading-relaxed">{cause.explanation}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Recommendations */}
+                      {aiResult.recommendations?.length > 0 && (
+                        <div className="bg-emerald-500/8 border border-emerald-500/20 rounded-2xl p-4 space-y-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            <p className="text-sm font-semibold text-emerald-300">Recommendations</p>
+                          </div>
+                          {aiResult.recommendations.map((rec, i) => (
+                            <div key={i} className="flex items-start gap-2">
+                              <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-bold">{i + 1}</span>
+                              <p className="text-xs text-slate-200 leading-relaxed">{rec}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
 
