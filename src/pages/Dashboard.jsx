@@ -16,6 +16,7 @@ import SuccessRateTrend from '@/components/dashboard/SuccessRateTrend';
 import HighRiskAlerts from '@/components/dashboard/HighRiskAlerts';
 import MaintenanceAlerts from '@/components/dashboard/MaintenanceAlerts';
 import PrinterHoursTracker from '@/components/PrinterHoursTracker';
+import EnvConditionsHeatmap from '@/components/dashboard/EnvConditionsHeatmap';
 
 export default function Dashboard() {
   const { data: entries = [], isLoading } = useQuery({
@@ -180,6 +181,10 @@ export default function Dashboard() {
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <PerformanceMetrics data={perfScatter} />
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.33 }}>
+          <EnvConditionsHeatmap entries={entries} />
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
