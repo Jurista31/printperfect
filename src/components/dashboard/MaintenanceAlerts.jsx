@@ -54,6 +54,11 @@ export default function MaintenanceAlerts({ entries }) {
     queryFn: () => base44.entities.PrinterProfile.list('-created_date', 20),
   });
 
+  const { data: customTasks = [] } = useQuery({
+    queryKey: ['printer-maintenance-dashboard'],
+    queryFn: () => base44.entities.PrinterMaintenance.list('-created_date', 200),
+  });
+
   const alerts = useMemo(() => {
     if (!profiles.length && !logs.length) return [];
 
@@ -120,11 +125,67 @@ export default function MaintenanceAlerts({ entries }) {
       });
     });
 
+    // --- Custom PrinterMaintenance tasks (user-defined intervals) ---
+    const modelByName = {};
+    profiles.forEach(p => { modelByName[p.name] = p.printer_model; });
+
+    customTasks.filter(t => t.is_active !== false).forEach(task => {
+      if (!task.interval_hours) return; // skip day-only tasks here (already handled by days check in page)
+      const printerName = task.printer_name || 'Unknown';
+      const model = modelByName[printerName] || printerName;
+
+      // Compute hours since last performed
+      let hoursSince;
+      if (task.last_performed_print_hours != null) {
+        const totalForPrinter = Math.round(
+          entries
+            .filter(e => e.printer_model && e.duration_minutes &&
+              (e.printer_model.toLowerCase().trim() === model.toLowerCase().trim() ||
+               e.printer_model.toLowerCase().trim() === printerName.toLowerCase().trim()))
+            .reduce((s, e) => s + e.duration_minutes / 60, 0) * 10
+        ) / 10;
+        hoursSince = Math.max(0, totalForPrinter - task.last_performed_print_hours);
+      } else {
+        // Never logged — use total
+        hoursSince = Math.round(
+          entries
+            .filter(e => e.printer_model && e.duration_minutes &&
+              (e.printer_model.toLowerCase().trim() === model.toLowerCase().trim() ||
+               e.printer_model.toLowerCase().trim() === printerName.toLowerCase().trim()))
+            .reduce((s, e) => s + e.duration_minutes / 60, 0) * 10
+        ) / 10;
+      }
+
+      const hoursUntilDue = task.interval_hours - hoursSince;
+      let severity = 'ok';
+      if (hoursUntilDue <= 0) severity = 'overdue';
+      else if (hoursUntilDue <= task.interval_hours * 0.2) severity = 'warning';
+      else if (!task.last_performed_date && !task.last_performed_print_hours) severity = 'warning';
+
+      if (severity !== 'ok') {
+        // Avoid duplicate if already in hardcoded results
+        const alreadyAdded = results.some(r => r.printerName === printerName && r.threshold?.label === task.task_name);
+        if (!alreadyAdded) {
+          results.push({
+            printerName,
+            printerModel: model,
+            type: task.task_type,
+            threshold: { label: task.task_name, hours: task.interval_hours, warnHours: task.interval_hours * 0.8 },
+            lastLog: null,
+            hoursSince,
+            totalPrintHours: hoursSince,
+            severity,
+            isCustomTask: true,
+          });
+        }
+      }
+    });
+
     return results.sort((a, b) => {
       const order = { overdue: 0, warning: 1, ok: 2 };
       return order[a.severity] - order[b.severity] || b.hoursSince - a.hoursSince;
     });
-  }, [entries, logs, profiles]);
+  }, [entries, logs, profiles, customTasks]);
 
   const overdueCount = alerts.filter(a => a.severity === 'overdue').length;
   const warningCount = alerts.filter(a => a.severity === 'warning').length;

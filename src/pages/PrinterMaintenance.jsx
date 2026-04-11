@@ -124,6 +124,32 @@ export default function PrinterMaintenancePage() {
     queryFn: () => base44.entities.PrinterProfile.list('-created_date', 50),
   });
 
+  const { data: journalEntries = [] } = useQuery({
+    queryKey: ['print-journal'],
+    queryFn: () => base44.entities.PrintJournalEntry.list('-print_date', 500),
+  });
+
+  // Auto-calculate print hours per printer name from journal entries
+  const computedHoursMap = useMemo(() => {
+    const map = {};
+    // Build a lookup: profile.name -> profile.printer_model
+    const modelByName = {};
+    profiles.forEach(p => { modelByName[p.name] = p.printer_model; });
+
+    // For each task's printer_name, sum journal hours matching that printer model
+    const printerNames = [...new Set(tasks.map(t => t.printer_name).filter(Boolean))];
+    printerNames.forEach(name => {
+      const model = modelByName[name] || name;
+      const hours = journalEntries
+        .filter(e => e.printer_model && e.duration_minutes &&
+          (e.printer_model.toLowerCase().trim() === model.toLowerCase().trim() ||
+           e.printer_model.toLowerCase().trim() === name.toLowerCase().trim()))
+        .reduce((s, e) => s + e.duration_minutes / 60, 0);
+      map[name] = Math.round(hours * 10) / 10;
+    });
+    return map;
+  }, [journalEntries, tasks, profiles]);
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.PrinterMaintenance.create(data),
     onSuccess: () => { qc.invalidateQueries(['printer-maintenance']); setShowForm(false); setForm(EMPTY_FORM); toast.success('Task added'); },
@@ -140,9 +166,7 @@ export default function PrinterMaintenancePage() {
   });
 
   const handleLogDone = (task) => {
-    const hours = printerHoursMap[task.printer_name] != null
-      ? Number(printerHoursMap[task.printer_name])
-      : undefined;
+    const hours = computedHoursMap[task.printer_name];
     updateMutation.mutate({
       id: task.id,
       data: {
@@ -175,7 +199,7 @@ export default function PrinterMaintenancePage() {
   }, [tasks]);
 
   const alertCount = tasks.filter(t => {
-    const s = getStatus(t, printerHoursMap[t.printer_name]);
+    const s = getStatus(t, computedHoursMap[t.printer_name]);
     return s === 'overdue' || s === 'never';
   }).length;
 
@@ -305,15 +329,10 @@ export default function PrinterMaintenancePage() {
             className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-slate-300">{printerName}</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500">Current hrs:</span>
-                <Input
-                  type="number" min="0" step="0.1"
-                  value={printerHoursMap[printerName] ?? ''}
-                  onChange={e => setPrinterHoursMap(m => ({ ...m, [printerName]: e.target.value }))}
-                  placeholder="0"
-                  className="w-20 h-7 text-xs bg-slate-800 border-slate-700 text-white px-2"
-                />
+              <div className="flex items-center gap-1.5 bg-slate-800/60 border border-slate-700/60 rounded-lg px-2.5 py-1">
+                <Clock className="w-3 h-3 text-amber-400" />
+                <span className="text-xs text-amber-300 font-semibold">{computedHoursMap[printerName] ?? 0}h</span>
+                <span className="text-xs text-slate-500">from journal</span>
               </div>
             </div>
             <div className="space-y-2">
@@ -321,7 +340,7 @@ export default function PrinterMaintenancePage() {
                 <TaskCard
                   key={task.id}
                   task={task}
-                  printerHours={printerHoursMap[printerName] != null ? Number(printerHoursMap[printerName]) : null}
+                  printerHours={computedHoursMap[printerName] ?? null}
                   onLogDone={handleLogDone}
                   onDelete={(id) => deleteMutation.mutate(id)}
                 />
